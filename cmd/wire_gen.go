@@ -7,7 +7,7 @@
 package main
 
 import (
-	"book-management/internal/controller/ping"
+	"book-management/internal/controller"
 	"book-management/internal/route"
 )
 
@@ -15,7 +15,7 @@ import (
 
 func InitializeApp() *App {
 	middleWareSet := route.NewGlobalMiddlewareSet()
-	pingController := ping.NewPingController()
+	pingController := controller.NewPingController()
 	webHandlerSet := route.NewWebHandlerSet(pingController)
 	engine := route.NewRouter(middleWareSet, webHandlerSet)
 	app := newApp(engine)

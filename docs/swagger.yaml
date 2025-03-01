@@ -1,0 +1,220 @@
+basePath: /api/v1
+definitions:
+  controller.AddStockReq:
+    properties:
+      author:
+        description: 作者
+        type: string
+      category:
+        description: 类别
+        type: string
+      name:
+        description: 书本名称
+        type: string
+      publisher:
+        description: 出版社
+        type: string
+      quantity_added:
+        description: 添加的库存数目
+        type: integer
+      where:
+        description: 库存位置
+        type: string
+    required:
+    - author
+    - category
+    - name
+    - publisher
+    - quantity_added
+    type: object
+  controller.AddStockResp:
+    properties:
+      code:
+        type: integer
+      data:
+        properties:
+          book_id:
+            description: 书本ID
+            type: integer
+        required:
+        - book_id
+        type: object
+      msg:
+        type: string
+    required:
+    - code
+    - msg
+    type: object
+  controller.Book:
+    properties:
+      author:
+        description: 作者
+        type: string
+      book_id:
+        description: 书本ID
+        type: integer
+      category:
+        description: 类别
+        type: string
+      created_at:
+        description: 入库时间
+        type: string
+      name:
+        description: 书本名称
+        type: string
+      publisher:
+        description: 出版社
+        type: string
+      stock:
+        description: 库存数量
+        type: integer
+      stock_status:
+        description: 库存状态
+        type: string
+      stock_where:
+        description: 库存位置
+        type: string
+    required:
+    - author
+    - book_id
+    - category
+    - created_at
+    - name
+    - publisher
+    - stock
+    - stock_status
+    - stock_where
+    type: object
+  controller.FuzzyQueryBookStockReq:
+    properties:
+      add_stock_time:
+        type: string
+      author:
+        type: string
+      category:
+        type: string
+      name:
+        type: string
+    required:
+    - category
+    type: object
+  controller.FuzzyQueryBookStockResp:
+    properties:
+      code:
+        type: integer
+      data:
+        description: 数据
+        items:
+          $ref: '#/definitions/controller.Book'
+        type: array
+      msg:
+        type: string
+    required:
+    - code
+    - data
+    - msg
+    type: object
+  controller.SearchStockByBookIDReq:
+    properties:
+      book_id:
+        description: 书本ID
+        type: integer
+    required:
+    - book_id
+    type: object
+  controller.SearchStockByBookIDResp:
+    properties:
+      code:
+        type: integer
+      data:
+        allOf:
+        - $ref: '#/definitions/controller.Book'
+        description: 数据
+      msg:
+        type: string
+    required:
+    - code
+    - data
+    - msg
+    type: object
+host: localhost:8989
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a sample server for a book management system.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Book Management API
+  version: "1.0"
+paths:
+  /api/v1/book/stock/add:
+    post:
+      consumes:
+      - application/json
+      description: 添加库存接口，参数的where是可选参数
+      parameters:
+      - description: 增加库存请求
+        in: body
+        name: object
+        required: true
+        schema:
+          $ref: '#/definitions/controller.AddStockReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.AddStockResp'
+      summary: 添加库存
+      tags:
+      - 库存
+  /api/v1/book/stock/fuzzy_query:
+    get:
+      consumes:
+      - application/json
+      description: 模糊查询库存信息
+      parameters:
+      - description: 查询请求
+        in: body
+        name: object
+        required: true
+        schema:
+          $ref: '#/definitions/controller.FuzzyQueryBookStockReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.FuzzyQueryBookStockResp'
+      summary: 模糊查询库存信息
+      tags:
+      - 库存
+  /api/v1/book/stock/searchByID:
+    get:
+      consumes:
+      - application/json
+      description: 根据ID查询库存信息
+      parameters:
+      - description: 查询请求
+        in: body
+        name: object
+        required: true
+        schema:
+          $ref: '#/definitions/controller.SearchStockByBookIDReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.SearchStockByBookIDResp'
+      summary: 根据ID查询库存信息
+      tags:
+      - 库存
+swagger: "2.0"

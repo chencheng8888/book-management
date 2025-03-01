@@ -1,4 +1,4 @@
-package ping
+package controller
 
 import "github.com/gin-gonic/gin"
 
@@ -8,8 +8,6 @@ func init() {
 	pingController = NewPingController()
 }
 
-
-
 type PingController struct{}
 
 func NewPingController() *PingController {
@@ -17,11 +15,11 @@ func NewPingController() *PingController {
 }
 
 func (p *PingController) Ping(ctx *gin.Context) {
-	ctx.JSON(200,gin.H{
-		"msg":"pong",
+	ctx.JSON(200, gin.H{
+		"msg": "pong",
 	})
 }
 
 func (p *PingController) RegisterRoute(r *gin.Engine) {
-	r.GET("/ping",pingController.Ping)
+	r.GET("/ping", pingController.Ping)
 }
