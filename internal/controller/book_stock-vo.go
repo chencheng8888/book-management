@@ -42,13 +42,32 @@ type SearchStockByBookIDResp struct {
 }
 
 type FuzzyQueryBookStockReq struct {
-	Name         *string `json:"name"`
-	Author       *string `json:"author"`
-	AddStockTime *string `json:"add_stock_time"`
-	Category     string  `json:"category" binding:"required"`
+	Name         *string `json:"name"`                         //书本名称
+	Author       *string `json:"author"`                       //作者
+	AddStockTime *string `json:"add_stock_time"`               //入库时间
+	Category     string  `json:"category" binding:"required"`  //类别
+	Page         int     `json:"page" binding:"required"`      //第几页
+	PageSize     int     `json:"page_size" binding:"required"` //每页大小
 }
 type FuzzyQueryBookStockResp struct {
 	Code int    `json:"code" binding:"required"`
 	Msg  string `json:"msg" binding:"required"`
-	Data []Book `json:"data" binding:"required"` //数据
+	Data struct {
+		Books       []Book `json:"books" binding:"required"`        //数据
+		CurrentPage int    `json:"current_page" binding:"required"` //当前页
+		TotalPage   int    `json:"total_page" binding:"required"`   //总数
+	} `json:"data" binding:"required"` //数据
+}
+type ListBookStockReq struct {
+	Page     int `json:"page" binding:"required"`      //第几页
+	PageSize int `json:"page_size" binding:"required"` //每页大小
+}
+type ListBookStockResp struct {
+	Code int    `json:"code" binding:"required"`
+	Msg  string `json:"msg" binding:"required"`
+	Data struct {
+		Books       []Book `json:"books" binding:"required"`        //数据
+		CurrentPage int    `json:"current_page" binding:"required"` //当前页
+		TotalPage   int    `json:"total_page" binding:"required"`   //总数
+	}
 }

@@ -12,7 +12,8 @@ import (
 type BookStockSvc interface {
 	AddStock(ctx context.Context, req AddStockReq) error
 	SearchBookStockByID(ctx context.Context, req SearchStockByBookIDReq) (Book, error)
-	FuzzyQueryBookStock(ctx context.Context, req FuzzyQueryBookStockReq) ([]Book, error)
+	FuzzyQueryBookStock(ctx context.Context, req FuzzyQueryBookStockReq, total *int) ([]Book, error)
+	ListBookStock(ctx context.Context, req ListBookStockReq, total *int) ([]Book, error)
 }
 
 type BookStockCtrl struct {
@@ -105,12 +106,37 @@ func (b *BookStockCtrl) FuzzyQueryBookStock(c *gin.Context) {
 		return
 	}
 
-	books, err := b.stockSvc.FuzzyQueryBookStock(c, fuzzyQueryBookStockReq)
+	var totalPage int
+
+	books, err := b.stockSvc.FuzzyQueryBookStock(c, fuzzyQueryBookStockReq, &totalPage)
 	if err != nil {
 		resp.SendResp(c, resp.NewRespFromErr(err))
 		return
 	}
-	resp.SendResp(c, resp.WithData(resp.SuccessResp, books))
+	resp.SendResp(c, resp.WithData(resp.SuccessResp, map[string]interface{}{
+		"books":        books,
+		"current_page": fuzzyQueryBookStockReq.Page,
+		"total_page":   totalPage,
+	}))
+}
+
+func (b *BookStockCtrl) ListBookStock(c *gin.Context) {
+	var listBookStockReq ListBookStockReq
+	if err := req.ParseRequest(c, &listBookStockReq); err != nil {
+		resp.SendResp(c, resp.NewRespFromErr(err))
+		return
+	}
+	var totalPage int
+	books, err := b.stockSvc.ListBookStock(c, listBookStockReq, &totalPage)
+	if err != nil {
+		resp.SendResp(c, resp.NewRespFromErr(err))
+		return
+	}
+	resp.SendResp(c, resp.WithData(resp.SuccessResp, map[string]interface{}{
+		"books":        books,
+		"current_page": listBookStockReq.Page,
+		"total_page":   totalPage,
+	}))
 }
 
 func checkCategory(category string) bool {

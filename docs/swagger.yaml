@@ -88,15 +88,27 @@ definitions:
   controller.FuzzyQueryBookStockReq:
     properties:
       add_stock_time:
+        description: 入库时间
         type: string
       author:
+        description: 作者
         type: string
       category:
+        description: 类别
         type: string
       name:
+        description: 书本名称
         type: string
+      page:
+        description: 第几页
+        type: integer
+      page_size:
+        description: 每页大小
+        type: integer
     required:
     - category
+    - page
+    - page_size
     type: object
   controller.FuzzyQueryBookStockResp:
     properties:
@@ -104,9 +116,23 @@ definitions:
         type: integer
       data:
         description: 数据
-        items:
-          $ref: '#/definitions/controller.Book'
-        type: array
+        properties:
+          books:
+            description: 数据
+            items:
+              $ref: '#/definitions/controller.Book'
+            type: array
+          current_page:
+            description: 当前页
+            type: integer
+          total_page:
+            description: 总数
+            type: integer
+        required:
+        - books
+        - current_page
+        - total_page
+        type: object
       msg:
         type: string
     required:

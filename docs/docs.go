@@ -246,20 +246,34 @@ const docTemplate = `{
         "controller.FuzzyQueryBookStockReq": {
             "type": "object",
             "required": [
-                "category"
+                "category",
+                "page",
+                "page_size"
             ],
             "properties": {
                 "add_stock_time": {
+                    "description": "入库时间",
                     "type": "string"
                 },
                 "author": {
+                    "description": "作者",
                     "type": "string"
                 },
                 "category": {
+                    "description": "类别",
                     "type": "string"
                 },
                 "name": {
+                    "description": "书本名称",
                     "type": "string"
+                },
+                "page": {
+                    "description": "第几页",
+                    "type": "integer"
+                },
+                "page_size": {
+                    "description": "每页大小",
+                    "type": "integer"
                 }
             }
         },
@@ -276,9 +290,28 @@ const docTemplate = `{
                 },
                 "data": {
                     "description": "数据",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/controller.Book"
+                    "type": "object",
+                    "required": [
+                        "books",
+                        "current_page",
+                        "total_page"
+                    ],
+                    "properties": {
+                        "books": {
+                            "description": "数据",
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/controller.Book"
+                            }
+                        },
+                        "current_page": {
+                            "description": "当前页",
+                            "type": "integer"
+                        },
+                        "total_page": {
+                            "description": "总数",
+                            "type": "integer"
+                        }
                     }
                 },
                 "msg": {
