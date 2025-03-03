@@ -67,13 +67,43 @@
                 "summary": "模糊查询库存信息",
                 "parameters": [
                     {
-                        "description": "查询请求",
-                        "name": "object",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/controller.FuzzyQueryBookStockReq"
-                        }
+                        "type": "string",
+                        "description": "入库时间",
+                        "name": "add_stock_time",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "作者",
+                        "name": "author",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "类别",
+                        "name": "category",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "书本名称",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "第几页",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页大小",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -81,6 +111,45 @@
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/controller.FuzzyQueryBookStockResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/book/stock/list": {
+            "get": {
+                "description": "列出所有库存信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "库存"
+                ],
+                "summary": "列出所有库存信息",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "第几页",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页大小",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controller.ListBookStockResp"
                         }
                     }
                 }
@@ -101,13 +170,11 @@
                 "summary": "根据ID查询库存信息",
                 "parameters": [
                     {
-                        "description": "查询请求",
-                        "name": "object",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/controller.SearchStockByBookIDReq"
-                        }
+                        "type": "integer",
+                        "description": "书本ID",
+                        "name": "book_id",
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -237,40 +304,6 @@
                 }
             }
         },
-        "controller.FuzzyQueryBookStockReq": {
-            "type": "object",
-            "required": [
-                "category",
-                "page",
-                "page_size"
-            ],
-            "properties": {
-                "add_stock_time": {
-                    "description": "入库时间",
-                    "type": "string"
-                },
-                "author": {
-                    "description": "作者",
-                    "type": "string"
-                },
-                "category": {
-                    "description": "类别",
-                    "type": "string"
-                },
-                "name": {
-                    "description": "书本名称",
-                    "type": "string"
-                },
-                "page": {
-                    "description": "第几页",
-                    "type": "integer"
-                },
-                "page_size": {
-                    "description": "每页大小",
-                    "type": "integer"
-                }
-            }
-        },
         "controller.FuzzyQueryBookStockResp": {
             "type": "object",
             "required": [
@@ -313,15 +346,43 @@
                 }
             }
         },
-        "controller.SearchStockByBookIDReq": {
+        "controller.ListBookStockResp": {
             "type": "object",
             "required": [
-                "book_id"
+                "code",
+                "msg"
             ],
             "properties": {
-                "book_id": {
-                    "description": "书本ID",
+                "code": {
                     "type": "integer"
+                },
+                "data": {
+                    "type": "object",
+                    "required": [
+                        "books",
+                        "current_page",
+                        "total_page"
+                    ],
+                    "properties": {
+                        "books": {
+                            "description": "数据",
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/controller.Book"
+                            }
+                        },
+                        "current_page": {
+                            "description": "当前页",
+                            "type": "integer"
+                        },
+                        "total_page": {
+                            "description": "总数",
+                            "type": "integer"
+                        }
+                    }
+                },
+                "msg": {
+                    "type": "string"
                 }
             }
         },

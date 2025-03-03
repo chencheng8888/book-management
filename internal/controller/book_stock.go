@@ -41,7 +41,7 @@ func (b *BookStockCtrl) RegisterRoute(r *gin.Engine) {
 func (b *BookStockCtrl) AddStock(c *gin.Context) {
 	//解析参数
 	var addStockReq AddStockReq
-	if err := req.ParseRequest(c, &addStockReq); err != nil {
+	if err := req.ParseRequestBody(c, &addStockReq); err != nil {
 		resp.SendResp(c, resp.NewRespFromErr(err))
 		return
 	}
@@ -66,12 +66,12 @@ func (b *BookStockCtrl) AddStock(c *gin.Context) {
 // @Tags 库存
 // @Accept application/json
 // @Produce application/json
-// @Param object body SearchStockByBookIDReq true "查询请求"
+// @Param object query SearchStockByBookIDReq true "查询请求"
 // @Success 200 {object} SearchStockByBookIDResp
 // @Router /api/v1/book/stock/searchByID [get]
 func (b *BookStockCtrl) SearchStockByBookID(c *gin.Context) {
 	var searchByBookIDReq SearchStockByBookIDReq
-	if err := req.ParseRequest(c, &searchByBookIDReq); err != nil {
+	if err := req.ParseRequestQuery(c, &searchByBookIDReq); err != nil {
 		resp.SendResp(c, resp.NewRespFromErr(err))
 		return
 	}
@@ -91,12 +91,12 @@ func (b *BookStockCtrl) SearchStockByBookID(c *gin.Context) {
 // @Tags 库存
 // @Accept application/json
 // @Produce application/json
-// @Param object body FuzzyQueryBookStockReq true "查询请求"
+// @Param object query FuzzyQueryBookStockReq true "查询请求"
 // @Success 200 {object} FuzzyQueryBookStockResp
 // @Router /api/v1/book/stock/fuzzy_query [get]
 func (b *BookStockCtrl) FuzzyQueryBookStock(c *gin.Context) {
 	var fuzzyQueryBookStockReq FuzzyQueryBookStockReq
-	if err := req.ParseRequest(c, &fuzzyQueryBookStockReq); err != nil {
+	if err := req.ParseRequestQuery(c, &fuzzyQueryBookStockReq); err != nil {
 		resp.SendResp(c, resp.NewRespFromErr(err))
 		return
 	}
@@ -120,9 +120,18 @@ func (b *BookStockCtrl) FuzzyQueryBookStock(c *gin.Context) {
 	}))
 }
 
+// ListBookStock 列出所有库存信息
+// @Summary 列出所有库存信息
+// @Description 列出所有库存信息
+// @Tags 库存
+// @Accept application/json
+// @Produce application/json
+// @Param object query ListBookStockReq true "查询请求"
+// @Success 200 {object} ListBookStockResp
+// @Router /api/v1/book/stock/list [get]
 func (b *BookStockCtrl) ListBookStock(c *gin.Context) {
 	var listBookStockReq ListBookStockReq
-	if err := req.ParseRequest(c, &listBookStockReq); err != nil {
+	if err := req.ParseRequestBody(c, &listBookStockReq); err != nil {
 		resp.SendResp(c, resp.NewRespFromErr(err))
 		return
 	}
