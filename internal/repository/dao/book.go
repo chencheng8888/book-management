@@ -2,6 +2,7 @@ package dao
 
 import (
 	"book-management/internal/repository/do"
+	"book-management/pkg/logger"
 	"context"
 	"errors"
 	"gorm.io/gorm"
@@ -17,7 +18,7 @@ func (b *BookDao) CheckBookIfExist(ctx context.Context, name, author, publisher,
 }
 
 func (b *BookDao) AddBookStock(ctx context.Context, id uint64, num uint, where *string) error {
-	return b.db.Transaction(func(tx *gorm.DB) error {
+	err := b.db.Transaction(func(tx *gorm.DB) error {
 		if !checkBookStockIfExistByID(ctx, tx, id) {
 			return errors.New("book stock is not exist")
 		}
@@ -31,11 +32,15 @@ func (b *BookDao) AddBookStock(ctx context.Context, id uint64, num uint, where *
 		}
 		return nil
 	})
+	if err != nil {
+		logger.LogPrinter.Errorf("AddBookStock [id:%v num:%v where:%v] failed, err: %v", id, num, where, err)
+	}
+	return err
 }
 
 func (b *BookDao) RegisterAndAddBookStock(ctx context.Context, bookInfo do.BookInfo, addedNum uint, where string) error {
 	createdTime := time.Now()
-	return b.db.Transaction(func(tx *gorm.DB) error {
+	err := b.db.Transaction(func(tx *gorm.DB) error {
 		err := createBookInfo(ctx, tx, bookInfo)
 		if err != nil {
 			return err
@@ -57,6 +62,10 @@ func (b *BookDao) RegisterAndAddBookStock(ctx context.Context, bookInfo do.BookI
 		}
 		return nil
 	})
+	if err != nil {
+		logger.LogPrinter.Errorf("RegisterAndAddBookStock [bookInfo:%v addedNum:%v where:%v] failed, err: %v", bookInfo, addedNum, where, err)
+	}
+	return err
 }
 
 func (b *BookDao) GetBookInfoByID(ctx context.Context, id ...uint64) ([]do.BookInfo, error) {
