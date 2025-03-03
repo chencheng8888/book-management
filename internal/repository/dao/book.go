@@ -106,7 +106,7 @@ func (b *BookDao) GetBookTotalNum(ctx context.Context) (int, error) {
 
 func checkBookIfExist(ctx context.Context, db *gorm.DB, name, author, publisher, category string) (uint64, bool) {
 	var id uint64
-	err := db.WithContext(ctx).Table(do.BookInfo{}.TableName()).
+	err := db.WithContext(ctx).Debug().Table(do.BookInfo{}.TableName()).
 		Where("name = ? AND author = ? AND publisher = ? AND category = ?", name, author, publisher, category).Select("id").First(&id).Error
 	if err != nil {
 		return 0, false
@@ -116,7 +116,7 @@ func checkBookIfExist(ctx context.Context, db *gorm.DB, name, author, publisher,
 
 func checkBookStockIfExistByID(ctx context.Context, db *gorm.DB, id uint64) bool {
 	var count int64
-	err := db.WithContext(ctx).Table(do.BookStock{}.TableName()).
+	err := db.WithContext(ctx).Debug().Table(do.BookStock{}.TableName()).
 		Where("book_id = ?", id).Count(&count).Error
 	if err != nil {
 		return false
@@ -125,27 +125,27 @@ func checkBookStockIfExistByID(ctx context.Context, db *gorm.DB, id uint64) bool
 }
 
 func addStock(ctx context.Context, db *gorm.DB, id uint64, num uint) error {
-	return db.WithContext(ctx).Table(do.BookStock{}.TableName()).
+	return db.WithContext(ctx).Debug().Table(do.BookStock{}.TableName()).
 		Where("book_id = ?", id).
 		Update("stock", gorm.Expr("stock + ?", num)).Error
 }
 
 func updateStockWhere(ctx context.Context, db *gorm.DB, id uint64, where string) error {
-	return db.WithContext(ctx).Table(do.BookStock{}.TableName()).
+	return db.WithContext(ctx).Debug().Table(do.BookStock{}.TableName()).
 		Where("book_id = ?", id).Update("where", where).Error
 }
 
 func createBookInfo(ctx context.Context, db *gorm.DB, bookInfo do.BookInfo) error {
-	return db.WithContext(ctx).Create(&bookInfo).Error
+	return db.WithContext(ctx).Debug().Create(&bookInfo).Error
 }
 
 func createBookStock(ctx context.Context, db *gorm.DB, bookStock do.BookStock) error {
-	return db.WithContext(ctx).Create(&bookStock).Error
+	return db.WithContext(ctx).Debug().Create(&bookStock).Error
 }
 
 func getBookInfoByID(ctx context.Context, db *gorm.DB, ids ...uint64) ([]do.BookInfo, error) {
 	var infos []do.BookInfo
-	err := db.WithContext(ctx).Table(do.BookInfo{}.TableName()).
+	err := db.WithContext(ctx).Debug().Table(do.BookInfo{}.TableName()).
 		Where("id in (?)", ids).Find(&infos).Error
 	if err != nil {
 		return nil, err
@@ -155,7 +155,7 @@ func getBookInfoByID(ctx context.Context, db *gorm.DB, ids ...uint64) ([]do.Book
 
 func getBookStockByID(ctx context.Context, db *gorm.DB, ids ...uint64) ([]do.BookStock, error) {
 	var stocks []do.BookStock
-	err := db.WithContext(ctx).Table(do.BookStock{}.TableName()).
+	err := db.WithContext(ctx).Debug().Table(do.BookStock{}.TableName()).
 		Where("book_id in (?)", ids).Find(&stocks).Error
 	if err != nil {
 		return nil, err
@@ -165,7 +165,7 @@ func getBookStockByID(ctx context.Context, db *gorm.DB, ids ...uint64) ([]do.Boo
 
 func getBookTotalNum(ctx context.Context, db *gorm.DB) (int, error) {
 	var count int64
-	err := db.WithContext(ctx).Table(do.BookInfo{}.TableName()).
+	err := db.WithContext(ctx).Debug().Table(do.BookInfo{}.TableName()).
 		Count(&count).Error
 	if err != nil {
 		return 0, err
