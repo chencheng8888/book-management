@@ -3,7 +3,9 @@ package dao
 import (
 	"book-management/internal/repository/do"
 	"context"
+	"errors"
 	"gorm.io/gorm"
+	"time"
 )
 
 type BookDao struct {
@@ -11,36 +13,153 @@ type BookDao struct {
 }
 
 func (b *BookDao) CheckBookIfExist(ctx context.Context, name, author, publisher, category string) (uint64, bool) {
-	//TODO implement me
-	panic("implement me")
+	return checkBookIfExist(ctx, b.db, name, author, publisher, category)
 }
 
 func (b *BookDao) AddBookStock(ctx context.Context, id uint64, num uint, where *string) error {
-	//TODO implement me
-	panic("implement me")
+	return b.db.Transaction(func(tx *gorm.DB) error {
+		if !checkBookStockIfExistByID(ctx, tx, id) {
+			return errors.New("book stock is not exist")
+		}
+		if err := addStock(ctx, tx, id, num); err != nil {
+			return err
+		}
+		if where != nil {
+			if err := updateStockWhere(ctx, tx, id, *where); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
-func (b *BookDao) RegisterAndAddBookStock(ctx context.Context, bookInfo do.BookInfo, addedNum uint, where *string) error {
-	//TODO implement me
-	panic("implement me")
+func (b *BookDao) RegisterAndAddBookStock(ctx context.Context, bookInfo do.BookInfo, addedNum uint, where string) error {
+	createdTime := time.Now()
+	return b.db.Transaction(func(tx *gorm.DB) error {
+		err := createBookInfo(ctx, tx, bookInfo)
+		if err != nil {
+			return err
+		}
+
+		if checkBookStockIfExistByID(ctx, tx, bookInfo.ID) {
+			return errors.New("book stock unexpectedly exist")
+		}
+
+		err = createBookStock(ctx, tx, do.BookStock{
+			BookID:    bookInfo.ID,
+			Stock:     addedNum,
+			Where:     where,
+			CreatedAt: createdTime,
+			UpdatedAt: createdTime,
+		})
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 func (b *BookDao) GetBookInfoByID(ctx context.Context, id ...uint64) ([]do.BookInfo, error) {
-	//TODO implement me
-	panic("implement me")
+	if len(id) == 0 {
+		return nil, errors.New("the length of the ID to be queried is 0")
+	}
+	return getBookInfoByID(ctx, b.db, id...)
 }
 
 func (b *BookDao) GetBookStockByID(ctx context.Context, id ...uint64) ([]do.BookStock, error) {
-	//TODO implement me
-	panic("implement me")
+	if len(id) == 0 {
+		return nil, errors.New("the length of the ID to be queried is 0")
+	}
+	return getBookStockByID(ctx, b.db, id...)
 }
 
 func (b *BookDao) FuzzyQueryBookID(ctx context.Context, pageSize int, page int, opts ...func(db *gorm.DB)) ([]uint64, error) {
-	//TODO implement me
-	panic("implement me")
+	db := b.db.WithContext(ctx).Table(do.BookInfo{}.TableName())
+
+	for _, opt := range opts {
+		opt(db)
+	}
+
+	var ids []uint64
+
+	err := db.Debug().Select("id").
+		Where("id > (?)", db.Select("id").Offset((page-1)*pageSize).Limit(1)).
+		Order("id ASC").Limit(pageSize).Find(&ids).Error
+	if err != nil {
+		return nil, err
+	}
+	return ids, nil
 }
 
 func (b *BookDao) GetBookTotalNum(ctx context.Context) (int, error) {
-	//TODO implement me
-	panic("implement me")
+	return getBookTotalNum(ctx, b.db)
+}
+
+func checkBookIfExist(ctx context.Context, db *gorm.DB, name, author, publisher, category string) (uint64, bool) {
+	var id uint64
+	err := db.WithContext(ctx).Table(do.BookInfo{}.TableName()).
+		Where("name = ? AND author = ? AND publisher = ? AND category = ?", name, author, publisher, category).Select("id").First(&id).Error
+	if err != nil {
+		return 0, false
+	}
+	return id, true
+}
+
+func checkBookStockIfExistByID(ctx context.Context, db *gorm.DB, id uint64) bool {
+	var count int64
+	err := db.WithContext(ctx).Table(do.BookStock{}.TableName()).
+		Where("book_id = ?", id).Count(&count).Error
+	if err != nil {
+		return false
+	}
+	return count > 0
+}
+
+func addStock(ctx context.Context, db *gorm.DB, id uint64, num uint) error {
+	return db.WithContext(ctx).Table(do.BookStock{}.TableName()).
+		Where("book_id = ?", id).
+		Update("stock", gorm.Expr("stock + ?", num)).Error
+}
+
+func updateStockWhere(ctx context.Context, db *gorm.DB, id uint64, where string) error {
+	return db.WithContext(ctx).Table(do.BookStock{}.TableName()).
+		Where("book_id = ?", id).Update("where", where).Error
+}
+
+func createBookInfo(ctx context.Context, db *gorm.DB, bookInfo do.BookInfo) error {
+	return db.WithContext(ctx).Create(&bookInfo).Error
+}
+
+func createBookStock(ctx context.Context, db *gorm.DB, bookStock do.BookStock) error {
+	return db.WithContext(ctx).Create(&bookStock).Error
+}
+
+func getBookInfoByID(ctx context.Context, db *gorm.DB, ids ...uint64) ([]do.BookInfo, error) {
+	var infos []do.BookInfo
+	err := db.WithContext(ctx).Table(do.BookInfo{}.TableName()).
+		Where("id in (?)", ids).Find(&infos).Error
+	if err != nil {
+		return nil, err
+	}
+	return infos, nil
+}
+
+func getBookStockByID(ctx context.Context, db *gorm.DB, ids ...uint64) ([]do.BookStock, error) {
+	var stocks []do.BookStock
+	err := db.WithContext(ctx).Table(do.BookStock{}.TableName()).
+		Where("book_id in (?)", ids).Find(&stocks).Error
+	if err != nil {
+		return nil, err
+	}
+	return stocks, nil
+}
+
+func getBookTotalNum(ctx context.Context, db *gorm.DB) (int, error) {
+	var count int64
+	err := db.WithContext(ctx).Table(do.BookInfo{}.TableName()).
+		Count(&count).Error
+	if err != nil {
+		return 0, err
+	}
+	return int(count), nil
 }

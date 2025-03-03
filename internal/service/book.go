@@ -13,7 +13,7 @@ type BookRepo interface {
 	CheckBookInfoIfExist(ctx context.Context, name, author, publisher, category string) (uint64, bool)
 
 	AddBookStock(ctx context.Context, id uint64, num uint, where *string) error
-	RegisterBookAndAddBookStock(ctx context.Context, id uint64, book BookInfo, num uint, where *string) error
+	RegisterBookAndAddBookStock(ctx context.Context, id uint64, book BookInfo, num uint, where string) error
 
 	SearchBookByID(ctx context.Context, id uint64) (Book, error)
 	FuzzyQueryBook(ctx context.Context, pageSize int, currentPage int, totalPage *int, opts ...func(db *gorm.DB)) ([]Book, error)
@@ -39,6 +39,11 @@ func (b *BookSvc) AddStock(ctx context.Context, req controller.AddStockReq) erro
 		return nil
 	}
 
+	//第一次加入库存，需给予where
+	if req.Where == nil {
+		return errcode.ParamError
+	}
+
 	bookID, err := b.ider.GenerateBookID(ctx)
 	if err != nil {
 		logger.LogPrinter.Errorf("generate book id failed: %v", err)
@@ -51,7 +56,7 @@ func (b *BookSvc) AddStock(ctx context.Context, req controller.AddStockReq) erro
 		Publisher: req.Publisher,
 		Category:  req.Category,
 	}
-	err = b.bookRepo.RegisterBookAndAddBookStock(ctx, bookID, bookInfo, req.QuantityAdded, req.Where)
+	err = b.bookRepo.RegisterBookAndAddBookStock(ctx, bookID, bookInfo, req.QuantityAdded, *req.Where)
 
 	if err != nil {
 		logger.LogPrinter.Errorf("add stock[info:%v addedNum:%v where: %v] failed: %v", bookInfo, req.QuantityAdded, req.Where, err)

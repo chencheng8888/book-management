@@ -13,7 +13,7 @@ import (
 type BookDao interface {
 	CheckBookIfExist(ctx context.Context, name, author, publisher, category string) (uint64, bool)
 	AddBookStock(ctx context.Context, id uint64, num uint, where *string) error
-	RegisterAndAddBookStock(ctx context.Context, bookInfo do.BookInfo, addedNum uint, where *string) error
+	RegisterAndAddBookStock(ctx context.Context, bookInfo do.BookInfo, addedNum uint, where string) error
 
 	GetBookInfoByID(ctx context.Context, id ...uint64) ([]do.BookInfo, error)
 	GetBookStockByID(ctx context.Context, id ...uint64) ([]do.BookStock, error)
@@ -58,7 +58,7 @@ func (b *BookRepo) AddBookStock(ctx context.Context, id uint64, num uint, where 
 	return b.bookDao.AddBookStock(ctx, id, num, where)
 }
 
-func (b *BookRepo) RegisterBookAndAddBookStock(ctx context.Context, id uint64, book service.BookInfo, num uint, where *string) error {
+func (b *BookRepo) RegisterBookAndAddBookStock(ctx context.Context, id uint64, book service.BookInfo, num uint, where string) error {
 	clean := func(ctx context.Context) error {
 		if err := b.bookCache.DeleteBookInfo(ctx, id); err != nil {
 			return err
