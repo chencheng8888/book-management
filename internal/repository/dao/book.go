@@ -92,11 +92,12 @@ func (b *BookDao) FuzzyQueryBookID(ctx context.Context, pageSize int, page int, 
 	var ids []uint64
 
 	err := db.Debug().Select("id").
-		Where("id > (?)", db.Select("id").Offset((page-1)*pageSize).Limit(1)).
+		Where("id >= (?)", db.Select("id").Order("id ASC").Offset((page-1)*pageSize).Limit(1)).
 		Order("id ASC").Limit(pageSize).Find(&ids).Error
 	if err != nil {
 		return nil, err
 	}
+
 	return ids, nil
 }
 
@@ -107,8 +108,8 @@ func (b *BookDao) GetBookTotalNum(ctx context.Context) (int, error) {
 func checkBookIfExist(ctx context.Context, db *gorm.DB, name, author, publisher, category string) (uint64, bool) {
 	var id uint64
 	err := db.WithContext(ctx).Debug().Table(do.BookInfo{}.TableName()).
-		Where("name = ? AND author = ? AND publisher = ? AND category = ?", name, author, publisher, category).Select("id").First(&id).Error
-	if err != nil {
+		Where("name = ? AND author = ? AND publisher = ? AND category = ?", name, author, publisher, category).Pluck("id", &id).Error
+	if err != nil || id == 0 {
 		return 0, false
 	}
 	return id, true
