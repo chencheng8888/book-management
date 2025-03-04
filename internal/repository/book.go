@@ -19,19 +19,16 @@ type BookDao interface {
 	GetBookStockByID(ctx context.Context, id ...uint64) ([]do.BookStock, error)
 
 	FuzzyQueryBookID(ctx context.Context, pageSize int, page int, opts ...func(db *gorm.DB)) ([]uint64, error)
-	GetBookTotalNum(ctx context.Context) (int, error)
+	GetBookTotalNum(ctx context.Context, opts ...func(db *gorm.DB)) (int, error)
 }
 
 type BookCache interface {
 	DeleteBookStock(ctx context.Context, id uint64) error
 	DeleteBookInfo(ctx context.Context, id uint64) error
-	DeleteBookTotalNum(ctx context.Context) error
 	GetBookInfoByID(ctx context.Context, ids ...uint64) ([]do.BookInfo, []uint64)
 	GetBookStockByID(ctx context.Context, ids ...uint64) ([]do.BookStock, []uint64)
-	GetBookTotalNum(ctx context.Context) (int, error)
 	SaveBookInfo(ctx context.Context, infos ...do.BookInfo) error
 	SaveBookStock(ctx context.Context, stocks ...do.BookStock) error
-	SaveBookTotalNum(ctx context.Context, num int) error
 }
 
 type BookRepo struct {
@@ -64,9 +61,6 @@ func (b *BookRepo) RegisterBookAndAddBookStock(ctx context.Context, id uint64, b
 			return err
 		}
 		if err := b.bookCache.DeleteBookStock(ctx, id); err != nil {
-			return err
-		}
-		if err := b.bookCache.DeleteBookTotalNum(ctx); err != nil {
 			return err
 		}
 
@@ -106,25 +100,14 @@ func (b *BookRepo) SearchBookByID(ctx context.Context, id uint64) (service.Book,
 }
 
 func (b *BookRepo) FuzzyQueryBook(ctx context.Context, pageSize int, currentPage int, totalPage *int, opts ...func(db *gorm.DB)) ([]service.Book, error) {
-	var num int
-	var err error
-	var pageNum int
-	num, err = b.bookCache.GetBookTotalNum(ctx)
+	num, err := b.bookDao.GetBookTotalNum(ctx)
 	if err != nil {
-		num, err = b.bookDao.GetBookTotalNum(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		pageNum = int(math.Ceil(float64(num) / float64(pageSize)))
-
-		totalPage = &pageNum
-
-		//异步保存书籍总数
-		defer func() {
-			go b.bookCache.SaveBookTotalNum(ctx, num)
-		}()
+		return nil, err
 	}
+
+	pageNum := int(math.Ceil(float64(num) / float64(pageSize)))
+
+	totalPage = &pageNum
 
 	if currentPage > pageNum {
 		return nil, nil
@@ -134,6 +117,7 @@ func (b *BookRepo) FuzzyQueryBook(ctx context.Context, pageSize int, currentPage
 	if err != nil {
 		return nil, err
 	}
+
 	bookInfos, bookStocks, err := b.getBookInID(ctx, ids...)
 	if err != nil {
 		return nil, err

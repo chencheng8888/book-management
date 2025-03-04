@@ -85,6 +85,73 @@ definitions:
     - stock_status
     - stock_where
     type: object
+  controller.BookBorrowRecord:
+    properties:
+      book_id:
+        description: 书本ID【这个你可以理解为一类书，比如《高等数学》】
+        type: integer
+      copy_id:
+        description: "副本ID\t【这个你可以理解为具体一本书，比如《高等数学》的第一本"
+        type: integer
+      return_status:
+        description: 归还状态
+        type: string
+      should_return_time:
+        description: 应该归还的时间
+        type: string
+      user_id:
+        description: 用户ID
+        type: string
+      user_name:
+        description: 用户名
+        type: string
+    required:
+    - book_id
+    - copy_id
+    - return_status
+    - should_return_time
+    - user_id
+    - user_name
+    type: object
+  controller.BorrowBookReq:
+    properties:
+      book_id:
+        description: 书本ID【这个你可以理解为一类书，比如《高等数学》】
+        type: integer
+      borrower_id:
+        description: 借阅者ID
+        type: string
+      expected_return_time:
+        description: 预计归还时间,格式为"2006-01-02"
+        type: string
+    required:
+    - book_id
+    - borrower_id
+    - expected_return_time
+    type: object
+  controller.BorrowBookResp:
+    properties:
+      code:
+        type: integer
+      data:
+        properties:
+          book_id:
+            description: 实际借阅的书本ID
+            type: integer
+          copy_id:
+            description: "副本ID\t【这个你可以理解为具体一本书，比如《高等数学》的第一本】"
+            type: integer
+        required:
+        - book_id
+        - copy_id
+        type: object
+      msg:
+        type: string
+    required:
+    - code
+    - data
+    - msg
+    type: object
   controller.FuzzyQueryBookStockResp:
     properties:
       code:
@@ -115,16 +182,15 @@ definitions:
     - data
     - msg
     type: object
-  controller.ListBookStockResp:
+  controller.QueryBookBorrowRecordResp:
     properties:
       code:
         type: integer
       data:
         properties:
-          books:
-            description: 数据
+          borrow_records:
             items:
-              $ref: '#/definitions/controller.Book'
+              $ref: '#/definitions/controller.BookBorrowRecord'
             type: array
           current_page:
             description: 当前页
@@ -133,7 +199,7 @@ definitions:
             description: 总数
             type: integer
         required:
-        - books
+        - borrow_records
         - current_page
         - total_page
         type: object
@@ -141,6 +207,7 @@ definitions:
         type: string
     required:
     - code
+    - data
     - msg
     type: object
   controller.SearchStockByBookIDResp:
@@ -172,6 +239,58 @@ info:
   title: Book Management API
   version: "1.0"
 paths:
+  /api/v1/book/borrow/add:
+    post:
+      consumes:
+      - application/json
+      description: 借书接口
+      parameters:
+      - description: 借书请求
+        in: body
+        name: object
+        required: true
+        schema:
+          $ref: '#/definitions/controller.BorrowBookReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.BorrowBookResp'
+      summary: 借书
+      tags:
+      - 借书
+  /api/v1/book/borrow/query:
+    get:
+      consumes:
+      - application/json
+      description: 查询借书记录
+      parameters:
+      - description: 第几页
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: 每页大小
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      - description: 借阅状态的查询条件
+        in: query
+        name: query_status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.QueryBookBorrowRecordResp'
+      summary: 查询借书记录
+      tags:
+      - 借书
   /api/v1/book/stock/add:
     post:
       consumes:
@@ -198,11 +317,15 @@ paths:
     get:
       consumes:
       - application/json
-      description: 模糊查询库存信息
+      description: 模糊查询库存信息,没有任何查询条件就是直接列出数据
       parameters:
       - description: 入库时间
         in: query
         name: add_stock_time
+        type: string
+      - description: 入库地点
+        in: query
+        name: add_stock_where
         type: string
       - description: 作者
         in: query
@@ -211,7 +334,6 @@ paths:
       - description: 类别
         in: query
         name: category
-        required: true
         type: string
       - description: 书本名称
         in: query
@@ -235,32 +357,6 @@ paths:
           schema:
             $ref: '#/definitions/controller.FuzzyQueryBookStockResp'
       summary: 模糊查询库存信息
-      tags:
-      - 库存
-  /api/v1/book/stock/list:
-    get:
-      consumes:
-      - application/json
-      description: 列出所有库存信息
-      parameters:
-      - description: 第几页
-        in: query
-        name: page
-        required: true
-        type: integer
-      - description: 每页大小
-        in: query
-        name: page_size
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/controller.ListBookStockResp'
-      summary: 列出所有库存信息
       tags:
       - 库存
   /api/v1/book/stock/searchByID:

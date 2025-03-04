@@ -24,6 +24,85 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/v1/book/borrow/add": {
+            "post": {
+                "description": "借书接口",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "借书"
+                ],
+                "summary": "借书",
+                "parameters": [
+                    {
+                        "description": "借书请求",
+                        "name": "object",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controller.BorrowBookReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controller.BorrowBookResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/book/borrow/query": {
+            "get": {
+                "description": "查询借书记录",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "借书"
+                ],
+                "summary": "查询借书记录",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "第几页",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页大小",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "借阅状态的查询条件",
+                        "name": "query_status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controller.QueryBookBorrowRecordResp"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/book/stock/add": {
             "post": {
                 "description": "添加库存接口，参数的where是可选参数",
@@ -60,7 +139,7 @@ const docTemplate = `{
         },
         "/api/v1/book/stock/fuzzy_query": {
             "get": {
-                "description": "模糊查询库存信息",
+                "description": "模糊查询库存信息,没有任何查询条件就是直接列出数据",
                 "consumes": [
                     "application/json"
                 ],
@@ -80,6 +159,12 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
+                        "description": "入库地点",
+                        "name": "add_stock_where",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
                         "description": "作者",
                         "name": "author",
                         "in": "query"
@@ -88,8 +173,7 @@ const docTemplate = `{
                         "type": "string",
                         "description": "类别",
                         "name": "category",
-                        "in": "query",
-                        "required": true
+                        "in": "query"
                     },
                     {
                         "type": "string",
@@ -117,45 +201,6 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/controller.FuzzyQueryBookStockResp"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/book/stock/list": {
-            "get": {
-                "description": "列出所有库存信息",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "库存"
-                ],
-                "summary": "列出所有库存信息",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "第几页",
-                        "name": "page",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "每页大小",
-                        "name": "page_size",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/controller.ListBookStockResp"
                         }
                     }
                 }
@@ -310,6 +355,98 @@ const docTemplate = `{
                 }
             }
         },
+        "controller.BookBorrowRecord": {
+            "type": "object",
+            "required": [
+                "book_id",
+                "copy_id",
+                "return_status",
+                "should_return_time",
+                "user_id",
+                "user_name"
+            ],
+            "properties": {
+                "book_id": {
+                    "description": "书本ID【这个你可以理解为一类书，比如《高等数学》】",
+                    "type": "integer"
+                },
+                "copy_id": {
+                    "description": "副本ID\t【这个你可以理解为具体一本书，比如《高等数学》的第一本",
+                    "type": "integer"
+                },
+                "return_status": {
+                    "description": "归还状态",
+                    "type": "string"
+                },
+                "should_return_time": {
+                    "description": "应该归还的时间",
+                    "type": "string"
+                },
+                "user_id": {
+                    "description": "用户ID",
+                    "type": "string"
+                },
+                "user_name": {
+                    "description": "用户名",
+                    "type": "string"
+                }
+            }
+        },
+        "controller.BorrowBookReq": {
+            "type": "object",
+            "required": [
+                "book_id",
+                "borrower_id",
+                "expected_return_time"
+            ],
+            "properties": {
+                "book_id": {
+                    "description": "书本ID【这个你可以理解为一类书，比如《高等数学》】",
+                    "type": "integer"
+                },
+                "borrower_id": {
+                    "description": "借阅者ID",
+                    "type": "string"
+                },
+                "expected_return_time": {
+                    "description": "预计归还时间,格式为\"2006-01-02\"",
+                    "type": "string"
+                }
+            }
+        },
+        "controller.BorrowBookResp": {
+            "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "object",
+                    "required": [
+                        "book_id",
+                        "copy_id"
+                    ],
+                    "properties": {
+                        "book_id": {
+                            "description": "实际借阅的书本ID",
+                            "type": "integer"
+                        },
+                        "copy_id": {
+                            "description": "副本ID\t【这个你可以理解为具体一本书，比如《高等数学》的第一本】",
+                            "type": "integer"
+                        }
+                    }
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
         "controller.FuzzyQueryBookStockResp": {
             "type": "object",
             "required": [
@@ -352,10 +489,11 @@ const docTemplate = `{
                 }
             }
         },
-        "controller.ListBookStockResp": {
+        "controller.QueryBookBorrowRecordResp": {
             "type": "object",
             "required": [
                 "code",
+                "data",
                 "msg"
             ],
             "properties": {
@@ -365,16 +503,15 @@ const docTemplate = `{
                 "data": {
                     "type": "object",
                     "required": [
-                        "books",
+                        "borrow_records",
                         "current_page",
                         "total_page"
                     ],
                     "properties": {
-                        "books": {
-                            "description": "数据",
+                        "borrow_records": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/controller.Book"
+                                "$ref": "#/definitions/controller.BookBorrowRecord"
                             }
                         },
                         "current_page": {

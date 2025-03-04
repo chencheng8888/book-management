@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/redis/go-redis/v9"
-	"strconv"
 	"time"
 )
 
@@ -32,15 +31,6 @@ func (b *BookCache) DeleteBookInfo(ctx context.Context, id uint64) error {
 	err := b.rdb.Del(ctx, key).Err()
 	if err != nil {
 		logger.LogPrinter.Warnf("delete book info in cache failed, id: %d, err: %v", id, err)
-	}
-	return err
-}
-
-func (b *BookCache) DeleteBookTotalNum(ctx context.Context) error {
-	key := b.generateBookTotalNumKey()
-	err := b.rdb.Del(ctx, key).Err()
-	if err != nil {
-		logger.LogPrinter.Warnf("delete book total num in cache failed, err: %v", err)
 	}
 	return err
 }
@@ -115,15 +105,6 @@ func (b *BookCache) GetBookStockByID(ctx context.Context, ids ...uint64) ([]do.B
 	return stocks, leftIDs
 }
 
-func (b *BookCache) GetBookTotalNum(ctx context.Context) (int, error) {
-	key := b.generateBookTotalNumKey()
-	val, err := b.rdb.Get(ctx, key).Result()
-	if err != nil {
-		return 0, err
-	}
-	return strconv.Atoi(val)
-}
-
 func (b *BookCache) SaveBookInfo(ctx context.Context, infos ...do.BookInfo) error {
 	if len(infos) == 0 {
 		return nil
@@ -178,21 +159,9 @@ func (b *BookCache) SaveBookStock(ctx context.Context, stocks ...do.BookStock) e
 	return err
 }
 
-func (b *BookCache) SaveBookTotalNum(ctx context.Context, num int) error {
-	key := b.generateBookTotalNumKey()
-	err := b.rdb.Set(ctx, key, num, b.bookTotalNumExpire).Err()
-	if err != nil {
-		logger.LogPrinter.Warnf("save book total num in cache failed, err: %v", err)
-	}
-	return err
-}
-
 func (b *BookCache) generateBookInfoKey(id uint64) string {
 	return fmt.Sprintf("book-info:%d", id)
 }
 func (b *BookCache) generateBookStockKey(id uint64) string {
 	return fmt.Sprintf("book-stock:%d", id)
-}
-func (b *BookCache) generateBookTotalNumKey() string {
-	return "book-total-num"
 }

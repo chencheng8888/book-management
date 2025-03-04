@@ -1,10 +1,10 @@
 package controller
 
 import (
-	"book-management/internal/pkg/common"
 	"book-management/internal/pkg/errcode"
 	"book-management/internal/pkg/req"
 	"book-management/internal/pkg/resp"
+	"book-management/internal/pkg/tool"
 	"context"
 	"github.com/gin-gonic/gin"
 )
@@ -13,7 +13,7 @@ type BookStockSvc interface {
 	AddStock(ctx context.Context, req AddStockReq) error
 	SearchBookStockByID(ctx context.Context, req SearchStockByBookIDReq) (Book, error)
 	FuzzyQueryBookStock(ctx context.Context, req FuzzyQueryBookStockReq, total *int) ([]Book, error)
-	ListBookStock(ctx context.Context, req ListBookStockReq, total *int) ([]Book, error)
+	//ListBookStock(ctx context.Context, req ListBookStockReq, total *int) ([]Book, error)
 }
 
 type BookStockCtrl struct {
@@ -26,6 +26,7 @@ func (b *BookStockCtrl) RegisterRoute(r *gin.Engine) {
 		g.POST("/add", b.AddStock)
 		g.GET("/searchByID", b.SearchStockByBookID)
 		g.GET("/fuzzy_query", b.FuzzyQueryBookStock)
+		//g.GET("/list", b.ListBookStock)
 	}
 }
 
@@ -46,7 +47,7 @@ func (b *BookStockCtrl) AddStock(c *gin.Context) {
 		return
 	}
 
-	if ok := checkCategory(addStockReq.Category); !ok {
+	if ok := tool.CheckCategory(addStockReq.Category); !ok {
 		resp.SendResp(c, resp.NewRespFromErr(errcode.ParamError))
 		return
 	}
@@ -87,7 +88,7 @@ func (b *BookStockCtrl) SearchStockByBookID(c *gin.Context) {
 
 // FuzzyQueryBookStock 模糊查询库存信息
 // @Summary 模糊查询库存信息
-// @Description 模糊查询库存信息
+// @Description 模糊查询库存信息,没有任何查询条件就是直接列出数据
 // @Tags 库存
 // @Accept application/json
 // @Produce application/json
@@ -101,7 +102,12 @@ func (b *BookStockCtrl) FuzzyQueryBookStock(c *gin.Context) {
 		return
 	}
 
-	if ok := checkCategory(fuzzyQueryBookStockReq.Category); !ok {
+	if fuzzyQueryBookStockReq.Category != nil && tool.CheckCategory(*fuzzyQueryBookStockReq.Category) {
+		resp.SendResp(c, resp.NewRespFromErr(errcode.ParamError))
+		return
+	}
+
+	if fuzzyQueryBookStockReq.AddStockTime != nil && tool.IsTimeFormatValid(*fuzzyQueryBookStockReq.AddStockTime, tool.Format2) {
 		resp.SendResp(c, resp.NewRespFromErr(errcode.ParamError))
 		return
 	}
@@ -120,39 +126,30 @@ func (b *BookStockCtrl) FuzzyQueryBookStock(c *gin.Context) {
 	}))
 }
 
-// ListBookStock 列出所有库存信息
-// @Summary 列出所有库存信息
-// @Description 列出所有库存信息
-// @Tags 库存
-// @Accept application/json
-// @Produce application/json
-// @Param object query ListBookStockReq true "查询请求"
-// @Success 200 {object} ListBookStockResp
-// @Router /api/v1/book/stock/list [get]
-func (b *BookStockCtrl) ListBookStock(c *gin.Context) {
-	var listBookStockReq ListBookStockReq
-	if err := req.ParseRequestBody(c, &listBookStockReq); err != nil {
-		resp.SendResp(c, resp.NewRespFromErr(err))
-		return
-	}
-	var totalPage int
-	books, err := b.stockSvc.ListBookStock(c, listBookStockReq, &totalPage)
-	if err != nil {
-		resp.SendResp(c, resp.NewRespFromErr(err))
-		return
-	}
-	resp.SendResp(c, resp.WithData(resp.SuccessResp, map[string]interface{}{
-		"books":        books,
-		"current_page": listBookStockReq.Page,
-		"total_page":   totalPage,
-	}))
-}
-
-func checkCategory(category string) bool {
-	switch category {
-	case common.ChildrenStory, common.ScienceKnowledge, common.ArtEnlightenment:
-		return true
-	default:
-		return false
-	}
-}
+//// ListBookStock 列出所有库存信息
+//// @Summary 列出所有库存信息
+//// @Description 列出所有库存信息
+//// @Tags 库存
+//// @Accept application/json
+//// @Produce application/json
+//// @Param object query ListBookStockReq true "查询请求"
+//// @Success 200 {object} ListBookStockResp
+//// @Router /api/v1/book/stock/list [get]
+//func (b *BookStockCtrl) ListBookStock(c *gin.Context) {
+//	var listBookStockReq ListBookStockReq
+//	if err := req.ParseRequestBody(c, &listBookStockReq); err != nil {
+//		resp.SendResp(c, resp.NewRespFromErr(err))
+//		return
+//	}
+//	var totalPage int
+//	books, err := b.stockSvc.ListBookStock(c, listBookStockReq, &totalPage)
+//	if err != nil {
+//		resp.SendResp(c, resp.NewRespFromErr(err))
+//		return
+//	}
+//	resp.SendResp(c, resp.WithData(resp.SuccessResp, map[string]interface{}{
+//		"books":        books,
+//		"current_page": listBookStockReq.Page,
+//		"total_page":   totalPage,
+//	}))
+//}

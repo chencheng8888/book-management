@@ -1,10 +1,12 @@
 package dao
 
 import (
+	"book-management/internal/pkg/common"
 	"book-management/internal/repository/do"
 	"book-management/pkg/logger"
 	"context"
 	"errors"
+	"fmt"
 	"gorm.io/gorm"
 	"time"
 )
@@ -83,7 +85,11 @@ func (b *BookDao) GetBookStockByID(ctx context.Context, id ...uint64) ([]do.Book
 }
 
 func (b *BookDao) FuzzyQueryBookID(ctx context.Context, pageSize int, page int, opts ...func(db *gorm.DB)) ([]uint64, error) {
-	db := b.db.WithContext(ctx).Table(do.BookInfo{}.TableName())
+
+	// 基础查询：联表查询
+	db := b.db.WithContext(ctx).Table(common.BookTableName).
+		Joins(fmt.Sprintf("LEFT JOIN %s ON %s.id = %s.book_id", common.BookStockTableName, common.BookTableName, common.BookStockTableName)).
+		Select("DISTINCT id") // 确保ID唯一
 
 	for _, opt := range opts {
 		opt(db)
@@ -91,8 +97,8 @@ func (b *BookDao) FuzzyQueryBookID(ctx context.Context, pageSize int, page int, 
 
 	var ids []uint64
 
-	err := db.Debug().Select("id").
-		Where("id >= (?)", db.Select("id").Order("id ASC").Offset((page-1)*pageSize).Limit(1)).
+	err := db.Debug().
+		Where("id >= (?)", db.Order("id ASC").Offset((page-1)*pageSize).Limit(1)).
 		Order("id ASC").Limit(pageSize).Find(&ids).Error
 	if err != nil {
 		return nil, err
@@ -101,8 +107,24 @@ func (b *BookDao) FuzzyQueryBookID(ctx context.Context, pageSize int, page int, 
 	return ids, nil
 }
 
-func (b *BookDao) GetBookTotalNum(ctx context.Context) (int, error) {
-	return getBookTotalNum(ctx, b.db)
+func (b *BookDao) GetBookTotalNum(ctx context.Context, opts ...func(db *gorm.DB)) (int, error) {
+
+	// 基础查询：联表查询
+	db := b.db.WithContext(ctx).Table(common.BookTableName).
+		Joins(fmt.Sprintf("LEFT JOIN %s ON %s.id = %s.book_id", common.BookStockTableName, common.BookTableName, common.BookStockTableName)).
+		Select("DISTINCT id") // 确保ID唯一
+
+	for _, opt := range opts {
+		opt(db)
+	}
+
+	var cnt int64
+
+	err := db.Count(&cnt).Error
+	if err != nil {
+		return 0, err
+	}
+	return int(cnt), nil
 }
 
 func checkBookIfExist(ctx context.Context, db *gorm.DB, name, author, publisher, category string) (uint64, bool) {
@@ -146,7 +168,7 @@ func createBookStock(ctx context.Context, db *gorm.DB, bookStock do.BookStock) e
 
 func getBookInfoByID(ctx context.Context, db *gorm.DB, ids ...uint64) ([]do.BookInfo, error) {
 	var infos []do.BookInfo
-	err := db.WithContext(ctx).Debug().Table(do.BookInfo{}.TableName()).
+	err := db.WithContext(ctx).Debug().Table(common.BookTableName).
 		Where("id in (?)", ids).Find(&infos).Error
 	if err != nil {
 		return nil, err
@@ -156,20 +178,10 @@ func getBookInfoByID(ctx context.Context, db *gorm.DB, ids ...uint64) ([]do.Book
 
 func getBookStockByID(ctx context.Context, db *gorm.DB, ids ...uint64) ([]do.BookStock, error) {
 	var stocks []do.BookStock
-	err := db.WithContext(ctx).Debug().Table(do.BookStock{}.TableName()).
+	err := db.WithContext(ctx).Debug().Table(common.BookStockTableName).
 		Where("book_id in (?)", ids).Find(&stocks).Error
 	if err != nil {
 		return nil, err
 	}
 	return stocks, nil
-}
-
-func getBookTotalNum(ctx context.Context, db *gorm.DB) (int, error) {
-	var count int64
-	err := db.WithContext(ctx).Debug().Table(do.BookInfo{}.TableName()).
-		Count(&count).Error
-	if err != nil {
-		return 0, err
-	}
-	return int(count), nil
 }

@@ -4,6 +4,7 @@ import (
 	"book-management/internal/pkg/common"
 	"book-management/internal/repository/do"
 	"context"
+	"fmt"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"testing"
@@ -72,14 +73,6 @@ func Test_getBookStockByID(t *testing.T) {
 	t.Log(stock)
 }
 
-func Test_getBookTotalNum(t *testing.T) {
-	num, err := getBookTotalNum(context.Background(), testDB)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log(num)
-}
-
 func Test_updateStockWhere(t *testing.T) {
 	err := updateStockWhere(context.Background(), testDB, 111, "test_where1")
 	if err != nil {
@@ -120,5 +113,56 @@ func TestBookDao_FuzzyQueryBookID(t *testing.T) {
 			t.Fatal(err)
 		}
 		t.Log(ids)
+	})
+	t.Run("have query", func(t *testing.T) {
+		ids, err := bookDao.FuzzyQueryBookID(context.Background(), 10, 1, func(db *gorm.DB) {
+			db = db.Where(fmt.Sprintf("%s.name = ?", common.BookTableName), "test")
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Log(ids)
+	})
+	t.Run("have many query", func(t *testing.T) {
+		ids, err := bookDao.FuzzyQueryBookID(context.Background(), 10, 1, func(db *gorm.DB) {
+			db = db.Where(fmt.Sprintf("%s.author = ?", common.BookTableName), "test")
+		}, func(db *gorm.DB) {
+			db = db.Where(fmt.Sprintf("%s.where = ?", common.BookStockTableName), "test_where1")
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Log(ids)
+	})
+}
+
+func TestBookDao_GetBookTotalNum(t *testing.T) {
+	bookDao := &BookDao{db: testDB}
+	t.Run("no query", func(t *testing.T) {
+		nums, err := bookDao.GetBookTotalNum(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Log(nums)
+	})
+	t.Run("have query", func(t *testing.T) {
+		nums, err := bookDao.GetBookTotalNum(context.Background(), func(db *gorm.DB) {
+			db = db.Where(fmt.Sprintf("%s.name = ?", common.BookTableName), "test")
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Log(nums)
+	})
+	t.Run("have many  query", func(t *testing.T) {
+		nums, err := bookDao.GetBookTotalNum(context.Background(), func(db *gorm.DB) {
+			db = db.Where(fmt.Sprintf("%s.author = ?", common.BookTableName), "test")
+		}, func(db *gorm.DB) {
+			db = db.Where(fmt.Sprintf("%s.where = ?", common.BookStockTableName), "test_where1")
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Log(nums)
 	})
 }

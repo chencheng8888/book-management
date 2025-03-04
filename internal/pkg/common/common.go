@@ -20,3 +20,10 @@ const (
 	ScienceKnowledge = "science_knowledge" //科普知识
 	ArtEnlightenment = "art_enlightenment" //艺术启蒙
 )
+
+const (
+	BookTableName       = "books"
+	BookStockTableName  = "book_stocks"
+	BookCopyTableName   = "book_copy"
+	BookBorrowTableName = "book_borrow"
+)

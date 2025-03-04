@@ -2,9 +2,11 @@ package service
 
 import (
 	"book-management/internal/controller"
+	"book-management/internal/pkg/common"
 	"book-management/internal/pkg/errcode"
 	"book-management/pkg/logger"
 	"context"
+	"fmt"
 	"gorm.io/gorm"
 	"time"
 )
@@ -84,33 +86,40 @@ func (b *BookSvc) SearchBookStockByID(ctx context.Context, req controller.Search
 }
 
 func (b *BookSvc) FuzzyQueryBookStock(ctx context.Context, req controller.FuzzyQueryBookStockReq, totalPage *int) ([]controller.Book, error) {
-	var opts []func(db *gorm.DB)
+	var Opts []func(db *gorm.DB)
 
 	if req.Name != nil {
-		opts = append(opts, func(db *gorm.DB) {
-			db.Where("name = ?", req.Name)
+		Opts = append(Opts, func(db *gorm.DB) {
+			db.Where(fmt.Sprintf("%s.name = ?", common.BookTableName), req.Name)
 		})
 	}
 	if req.Author != nil {
-		opts = append(opts, func(db *gorm.DB) {
-			db.Where("author = ?", req.Author)
+		Opts = append(Opts, func(db *gorm.DB) {
+			db.Where(fmt.Sprintf("%s.author = ?", common.BookTableName), req.Author)
 		})
 	}
+	if req.Category != nil {
+		Opts = append(Opts, func(db *gorm.DB) {
+			db.Where(fmt.Sprintf("%s.category = ?", common.BookTableName), *req.Category)
+		})
+	}
+
 	if req.AddStockTime != nil {
 		t, err := convertStringToTime(*req.AddStockTime)
 		if err != nil {
 			return nil, errcode.ParamError
 		}
-		opts = append(opts, func(db *gorm.DB) {
-			db.Where("updated_at >= ? AND updated_at < ?", t, t.Add(24*time.Hour))
+		Opts = append(Opts, func(db *gorm.DB) {
+			db.Where(fmt.Sprintf("%s.updated_at >= ? AND %s.updated_at < ?", common.BookStockTableName, common.BookStockTableName), t, t.Add(24*time.Hour))
+		})
+	}
+	if req.AddStockWhere != nil {
+		Opts = append(Opts, func(db *gorm.DB) {
+			db.Where(fmt.Sprintf("%s.where = ?", common.BookStockTableName), *req.AddStockWhere)
 		})
 	}
 
-	opts = append(opts, func(db *gorm.DB) {
-		db.Where("category = ?", req.Category)
-	})
-
-	books, err := b.bookRepo.FuzzyQueryBook(ctx, req.PageSize, req.Page, totalPage, opts...)
+	books, err := b.bookRepo.FuzzyQueryBook(ctx, req.PageSize, req.Page, totalPage, Opts...)
 	if err != nil {
 		return nil, errcode.SearchBookError
 	}
@@ -119,16 +128,6 @@ func (b *BookSvc) FuzzyQueryBookStock(ctx context.Context, req controller.FuzzyQ
 		return nil, errcode.PageError
 	}
 
-	return batchToControllerBook(books), nil
-}
-func (b *BookSvc) ListBookStock(ctx context.Context, req controller.ListBookStockReq, total *int) ([]controller.Book, error) {
-	books, err := b.bookRepo.FuzzyQueryBook(ctx, req.PageSize, req.Page, total)
-	if err != nil {
-		return nil, errcode.SearchBookError
-	}
-	if req.Page > *total {
-		return nil, errcode.PageError
-	}
 	return batchToControllerBook(books), nil
 }
 
