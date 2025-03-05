@@ -22,3 +22,13 @@ type Book struct {
 	Info   BookInfo
 	Stock  BookStock
 }
+
+type BookBorrowRecord struct {
+	BookID       uint64    `json:"book_id"`       // 书本ID
+	BorrowerID   string    `json:"borrower_id"`   // 借阅者ID
+	Borrower     string    `json:"borrower"`      // 借阅者姓名
+	CopyID       uint64    `json:"copy_id"`       // 副本ID
+	BorrowTime   time.Time `json:"borrow_time"`   // 借阅时间
+	ExpectedTime time.Time `json:"expected_time"` // 预计归还时间
+	ReturnStatus string    `json:"return_status"` // 归还状态
+}

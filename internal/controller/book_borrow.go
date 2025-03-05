@@ -17,8 +17,11 @@ type BookBorrowCtrl struct {
 }
 
 func (b *BookBorrowCtrl) RegisterRoute(r *gin.Engine) {
-	//TODO implement me
-	panic("implement me")
+	g := r.Group("/api/v1/book/borrow")
+	{
+		g.POST("/add", b.BorrowBook)
+		g.GET("/query", b.QueryBookBorrowRecord)
+	}
 }
 
 // BorrowBook 借书

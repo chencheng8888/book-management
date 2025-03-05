@@ -15,6 +15,64 @@ type BookDao struct {
 	db *gorm.DB
 }
 
+func (b *BookDao) AddBookBorrowRecord(ctx context.Context, bookID uint64, borrowerID string, expectedReturnTime time.Time, copyID *uint64) error {
+	var copy_id uint64
+	err := b.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		err := tx.Debug().Table(common.BookCopyTableName).Select("copy_id").Where("book_id = ? AND status = ?", bookID, true).Scan(&copy_id).Error
+		if err != nil {
+			return err
+		}
+		copyID = &copy_id
+		err = updateCopyStatus(ctx, tx, bookID, copy_id, false)
+		if err != nil {
+			return err
+		}
+		err = tx.Debug().Table(common.BookBorrowTableName).Create(&do.BookBorrow{
+			BookID:             bookID,
+			CopyID:             copy_id,
+			BorrowerID:         borrowerID,
+			ExpectedReturnTime: expectedReturnTime,
+			CreatedTime:        time.Now(),
+			ReturnTime:         nil,
+			Status:             common.BookStatusWaitingReturn,
+		}).Error
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		logger.LogPrinter.Errorf("DB:AddBookBorrowRecord [bookID:%v borrowerID:%v expectedReturnTime:%v copyID:%v] failed, err: %v", bookID, borrowerID, expectedReturnTime, copyID, err)
+	}
+	return err
+}
+
+func (b *BookDao) GetBookRecordTotalNum(ctx context.Context, opts ...func(db *gorm.DB)) (int, error) {
+	var num int64
+	db := b.db.WithContext(ctx).Table(common.BookBorrowTableName)
+	for _, opt := range opts {
+		opt(db)
+	}
+	err := db.Debug().Count(&num).Error
+	if err != nil {
+		return 0, err
+	}
+	return int(num), nil
+}
+
+func (b *BookDao) FuzzyQueryBookBorrowRecord(ctx context.Context, pageSize int, page int, opts ...func(db *gorm.DB)) ([]do.BookBorrow, error) {
+	db := b.db.WithContext(ctx).Table(common.BookBorrowTableName)
+	for _, opt := range opts {
+		opt(db)
+	}
+	var records []do.BookBorrow
+	err := db.Debug().Limit(pageSize).Offset((page - 1) * pageSize).Order("book_id ASC,copy_id ASC").Find(&records).Error
+	if err != nil {
+		return nil, err
+	}
+	return records, nil
+}
+
 func (b *BookDao) CheckBookIfExist(ctx context.Context, name, author, publisher, category string) (uint64, bool) {
 	return checkBookIfExist(ctx, b.db, name, author, publisher, category)
 }
@@ -35,7 +93,7 @@ func (b *BookDao) AddBookStock(ctx context.Context, id uint64, num uint, where *
 		return nil
 	})
 	if err != nil {
-		logger.LogPrinter.Errorf("AddBookStock [id:%v num:%v where:%v] failed, err: %v", id, num, where, err)
+		logger.LogPrinter.Errorf("DB:AddBookStock [id:%v num:%v where:%v] failed, err: %v", id, num, where, err)
 	}
 	return err
 }
@@ -65,7 +123,7 @@ func (b *BookDao) RegisterAndAddBookStock(ctx context.Context, bookInfo do.BookI
 		return nil
 	})
 	if err != nil {
-		logger.LogPrinter.Errorf("RegisterAndAddBookStock [bookInfo:%v addedNum:%v where:%v] failed, err: %v", bookInfo, addedNum, where, err)
+		logger.LogPrinter.Errorf("DB:RegisterAndAddBookStock [bookInfo:%v addedNum:%v where:%v] failed, err: %v", bookInfo, addedNum, where, err)
 	}
 	return err
 }
@@ -184,4 +242,10 @@ func getBookStockByID(ctx context.Context, db *gorm.DB, ids ...uint64) ([]do.Boo
 		return nil, err
 	}
 	return stocks, nil
+}
+
+func updateCopyStatus(ctx context.Context, db *gorm.DB, bookID uint64, copyID uint64, status bool) error {
+	return db.WithContext(ctx).Debug().Table(common.BookCopyTableName).
+		Where("book_id =? AND copy_id =?", bookID, copyID).
+		Update("status", status).Error
 }

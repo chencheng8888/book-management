@@ -11,15 +11,30 @@ import (
 )
 
 type BookDao interface {
-	CheckBookIfExist(ctx context.Context, name, author, publisher, category string) (uint64, bool)
+	// 新增书籍库存
 	AddBookStock(ctx context.Context, id uint64, num uint, where *string) error
+	// 注册并新增书籍库存
 	RegisterAndAddBookStock(ctx context.Context, bookInfo do.BookInfo, addedNum uint, where string) error
-
+	// 新增借阅记录
+	AddBookBorrowRecord(ctx context.Context, bookID uint64, borrowerID string, expectedReturnTime time.Time, copyID *uint64) error
+	// 根据ID获取书籍信息
 	GetBookInfoByID(ctx context.Context, id ...uint64) ([]do.BookInfo, error)
+	// 根据ID获取书籍库存
 	GetBookStockByID(ctx context.Context, id ...uint64) ([]do.BookStock, error)
-
+	// 检查书本是否存在
+	CheckBookIfExist(ctx context.Context, name, author, publisher, category string) (uint64, bool)
+	//模糊查询书籍ID
 	FuzzyQueryBookID(ctx context.Context, pageSize int, page int, opts ...func(db *gorm.DB)) ([]uint64, error)
+	// 获取书籍总数
 	GetBookTotalNum(ctx context.Context, opts ...func(db *gorm.DB)) (int, error)
+	// 获取书本借阅记录总数
+	GetBookRecordTotalNum(ctx context.Context, opt ...func(db *gorm.DB)) (int, error)
+	// 模糊查询借阅记录
+	FuzzyQueryBookBorrowRecord(ctx context.Context, pageSize int, page int, opts ...func(db *gorm.DB)) ([]do.BookBorrow, error)
+}
+
+type UserDao interface {
+	GetUserName(ctx context.Context, id ...string) (map[string]string, error)
 }
 
 type BookCache interface {
@@ -33,7 +48,43 @@ type BookCache interface {
 
 type BookRepo struct {
 	bookDao   BookDao
+	userDao   UserDao
 	bookCache BookCache
+}
+
+func (b *BookRepo) QueryBookRecord(ctx context.Context, pageSize int, currentPage int, totalPage *int, opts ...func(db *gorm.DB)) ([]service.BookBorrowRecord, error) {
+	num, err := b.bookDao.GetBookRecordTotalNum(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	pageNum := int(math.Ceil(float64(num) / float64(pageSize)))
+
+	totalPage = &pageNum
+
+	if currentPage > pageNum {
+		return nil, nil
+	}
+
+	borrow, err := b.bookDao.FuzzyQueryBookBorrowRecord(ctx, pageSize, currentPage, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	var userID = make([]string, 0, len(borrow))
+	for _, v := range borrow {
+		userID = append(userID, v.BorrowerID)
+	}
+
+	mp, err := b.userDao.GetUserName(ctx, userID...)
+	if err != nil {
+		return nil, err
+	}
+	return batchToServiceBookRecord(borrow, mp), nil
+}
+
+func (b *BookRepo) AddBookBorrowRecord(ctx context.Context, bookID uint64, borrowerID string, expectedReturnTime time.Time, copyID *uint64) error {
+	return b.bookDao.AddBookBorrowRecord(ctx, bookID, borrowerID, expectedReturnTime, copyID)
 }
 
 func (b *BookRepo) CheckBookInfoIfExist(ctx context.Context, name, author, publisher, category string) (uint64, bool) {
@@ -201,4 +252,20 @@ func batchToServiceBook(bookInfos []do.BookInfo, bookStocks []do.BookStock) []se
 		result = append(result, toServiceBook(id, infoMap[id], stockMap[id]))
 	}
 	return result
+}
+
+func batchToServiceBookRecord(borrows []do.BookBorrow, user map[string]string) []service.BookBorrowRecord {
+	var records = make([]service.BookBorrowRecord, 0, len(borrows))
+	for _, borrow := range borrows {
+		records = append(records, service.BookBorrowRecord{
+			BookID:       borrow.BookID,
+			BorrowerID:   borrow.BorrowerID,
+			Borrower:     user[borrow.BorrowerID],
+			CopyID:       borrow.CopyID,
+			BorrowTime:   borrow.CreatedTime,
+			ExpectedTime: borrow.ExpectedReturnTime,
+			ReturnStatus: borrow.Status,
+		})
+	}
+	return records
 }

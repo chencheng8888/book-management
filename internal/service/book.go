@@ -7,6 +7,7 @@ import (
 	"book-management/pkg/logger"
 	"context"
 	"fmt"
+	"github.com/go-kratos/kratos/v2/errors"
 	"gorm.io/gorm"
 	"time"
 )
@@ -19,6 +20,9 @@ type BookRepo interface {
 
 	SearchBookByID(ctx context.Context, id uint64) (Book, error)
 	FuzzyQueryBook(ctx context.Context, pageSize int, currentPage int, totalPage *int, opts ...func(db *gorm.DB)) ([]Book, error)
+	QueryBookRecord(ctx context.Context, pageSize int, currentPage int, totalPage *int, opts ...func(db *gorm.DB)) ([]BookBorrowRecord, error)
+
+	AddBookBorrowRecord(ctx context.Context, bookID uint64, borrowerID string, expectedReturnTime time.Time, copyID *uint64) error
 }
 
 type IDer interface {
@@ -28,6 +32,47 @@ type IDer interface {
 type BookSvc struct {
 	bookRepo BookRepo
 	ider     IDer
+}
+
+func (b *BookSvc) AddBorrowBookRecord(ctx context.Context, req controller.BorrowBookReq) (uint64, uint64, error) {
+	expectedTime, err := convertStringToTime(req.ExpectedReturnTime)
+
+	var copyID uint64
+
+	err = b.bookRepo.AddBookBorrowRecord(ctx, req.BookID, req.BorrowerID, expectedTime, &copyID)
+	if errors.Is(err, errcode.InsufficientBookStock) {
+		return req.BookID, copyID, err
+	}
+	if err != nil {
+		return req.BookID, copyID, errcode.AddBookBorrowError
+	}
+	return req.BookID, copyID, nil
+}
+
+func (b *BookSvc) QueryBookBorrowRecord(ctx context.Context, req controller.QueryBookBorrowRecordReq, totalPage *int) ([]controller.BookBorrowRecord, error) {
+
+	var opt func(db *gorm.DB)
+
+	if req.QueryStatus != nil {
+		switch *req.QueryStatus {
+		case common.BookStatusWaitingReturn, common.BookStatusOverdue, common.BookStatusReturned:
+			opt = func(db *gorm.DB) {
+				db.Where(fmt.Sprintf("%s.status = ?", common.BookBorrowTableName), *req.QueryStatus)
+			}
+		default:
+			return nil, errcode.ParamError
+		}
+	}
+
+	records, err := b.bookRepo.QueryBookRecord(ctx, req.PageSize, req.Page, totalPage, opt)
+	if err != nil {
+		return nil, errcode.SearchDataError
+	}
+
+	if req.Page > *totalPage {
+		return nil, errcode.PageError
+	}
+	return batchToControllerBookBorrowRecord(records), nil
 }
 
 func (b *BookSvc) AddStock(ctx context.Context, req controller.AddStockReq) error {
@@ -70,7 +115,7 @@ func (b *BookSvc) AddStock(ctx context.Context, req controller.AddStockReq) erro
 func (b *BookSvc) SearchBookStockByID(ctx context.Context, req controller.SearchStockByBookIDReq) (controller.Book, error) {
 	book, err := b.bookRepo.SearchBookByID(ctx, req.BookID)
 	if err != nil {
-		return controller.Book{}, errcode.SearchBookError
+		return controller.Book{}, errcode.SearchDataError
 	}
 	return controller.Book{
 		BookID:      book.BookID,
@@ -121,7 +166,7 @@ func (b *BookSvc) FuzzyQueryBookStock(ctx context.Context, req controller.FuzzyQ
 
 	books, err := b.bookRepo.FuzzyQueryBook(ctx, req.PageSize, req.Page, totalPage, Opts...)
 	if err != nil {
-		return nil, errcode.SearchBookError
+		return nil, errcode.SearchDataError
 	}
 
 	if req.Page > *totalPage {
@@ -165,10 +210,29 @@ func toControllerBook(book Book) controller.Book {
 		CreatedAt:   convertTimeFormat(book.Stock.AddedTime),
 	}
 }
+func toControllerBookBorrowRecord(record BookBorrowRecord) controller.BookBorrowRecord {
+	return controller.BookBorrowRecord{
+		BookID:           record.BookID,
+		CopyID:           record.CopyID,
+		UserID:           record.BorrowerID,
+		UserName:         record.Borrower,
+		ShouldReturnTime: convertTimeFormat(record.ExpectedTime),
+		ReturnStatus:     record.ReturnStatus,
+	}
+}
+
 func batchToControllerBook(books []Book) []controller.Book {
 	var result []controller.Book
 	for _, book := range books {
 		result = append(result, toControllerBook(book))
+	}
+	return result
+}
+
+func batchToControllerBookBorrowRecord(records []BookBorrowRecord) []controller.BookBorrowRecord {
+	var result []controller.BookBorrowRecord
+	for _, record := range records {
+		result = append(result, toControllerBookBorrowRecord(record))
 	}
 	return result
 }

@@ -2,9 +2,9 @@ package common
 
 // 借阅状态
 const (
-	BookStatusNormal   = "normal"   //尚未借出
-	BookStatusReturned = "returned" //已归还
-	BookStatusOverdue  = "overdue"  //逾期
+	BookStatusWaitingReturn = "waiting_return" //待归还
+	BookStatusReturned      = "returned"       //已归还
+	BookStatusOverdue       = "overdue"        //逾期
 )
 
 // 库存状态
