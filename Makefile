@@ -16,3 +16,8 @@ help:
 	@echo "  all       - Default target, runs 'swagger'"
 	@echo "  swagger   - Generate Swagger docs"
 	@echo "  help      - Show this help message"
+
+mock:
+	@echo "start generate mock code"
+	mockgen -source internal/repository/book.go -destination internal/pkg/mocks/mock_repo.go -package mocks
+	@echo  "generate mock code end"

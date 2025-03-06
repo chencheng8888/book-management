@@ -2,13 +2,14 @@ package repository
 
 import (
 	"book-management/internal/pkg/common"
+	"book-management/internal/pkg/errcode"
 	"book-management/internal/repository/do"
 	"book-management/internal/service"
-	"book-management/pkg/logger"
 	"context"
-	"gorm.io/gorm"
 	"math"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type BookDao interface {
@@ -56,14 +57,14 @@ type BookRepo struct {
 }
 
 func (b *BookRepo) UpdateBorrowStatus(ctx context.Context, bookID uint64, copyID uint64, status string) error {
-	err := b.bookDao.UpdateBorrowStatus(ctx, bookID, copyID, status)
-	if err != nil {
-		logger.LogPrinter.Errorf("DB: update borrow record[bookID:%v copyID:%v status:%v] status failed: %v", bookID, copyID, status)
-	}
-	return err
+	return b.bookDao.UpdateBorrowStatus(ctx, bookID, copyID, status)
 }
 
 func (b *BookRepo) QueryBookRecord(ctx context.Context, pageSize int, currentPage int, totalPage *int, opts ...func(db *gorm.DB)) ([]service.BookBorrowRecord, error) {
+	if pageSize <= 0 || currentPage <= 0 {
+		return nil, errcode.PageError
+	}
+
 	num, err := b.bookDao.GetBookRecordTotalNum(ctx, opts...)
 	if err != nil {
 		return nil, err
@@ -74,7 +75,7 @@ func (b *BookRepo) QueryBookRecord(ctx context.Context, pageSize int, currentPag
 	totalPage = &pageNum
 
 	if currentPage > pageNum {
-		return nil, nil
+		return nil, errcode.PageError
 	}
 
 	borrow, err := b.bookDao.FuzzyQueryBookBorrowRecord(ctx, pageSize, currentPage, opts...)

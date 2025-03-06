@@ -1,4 +1,4 @@
-package repository
+package service
 
 import "github.com/google/wire"
 
