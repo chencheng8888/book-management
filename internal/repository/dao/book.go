@@ -15,15 +15,45 @@ type BookDao struct {
 	db *gorm.DB
 }
 
-func (b *BookDao) AddBookBorrowRecord(ctx context.Context, bookID uint64, borrowerID string, expectedReturnTime time.Time, copyID *uint64) error {
-	var copy_id uint64
+func (b *BookDao) UpdateBorrowStatus(ctx context.Context, bookID, copyID uint64, status string) error {
 	err := b.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		err := tx.Debug().Table(common.BookCopyTableName).Select("copy_id").Where("book_id = ? AND status = ?", bookID, true).Scan(&copy_id).Error
+		err := updateBorrowRecordStatus(ctx, tx, bookID, copyID, status)
 		if err != nil {
 			return err
 		}
+		var IfInStock bool
+		var returnTime *time.Time
+		if status == common.BookStatusReturned {
+			IfInStock = true
+			returnTime = new(time.Time)
+			*returnTime = time.Now()
+		} else {
+			IfInStock = false
+		}
+		err = updateCopyStatus(ctx, tx, bookID, copyID, IfInStock)
+		if err != nil {
+			return err
+		}
+		return updateBorrowRecordReturnTime(ctx, tx, bookID, copyID, returnTime)
+	})
+	if err != nil {
+		logger.LogPrinter.Errorf("DB: update borrow status[book_id:%v copy_id:%v status:%v] failed: %v", bookID, copyID, status, err)
+	}
+	return err
+}
+
+func (b *BookDao) AddBookBorrowRecord(ctx context.Context, bookID uint64, borrowerID string, expectedReturnTime time.Time, copyID *uint64) error {
+	var copy_id uint64
+	err := b.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		res := tx.Debug().Table(common.BookCopyTableName).Select("copy_id").Where("book_id = ? AND status = ?", bookID, true).Scan(&copy_id)
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected == 0 {
+			return errors.New("no excess inventory")
+		}
 		copyID = &copy_id
-		err = updateCopyStatus(ctx, tx, bookID, copy_id, false)
+		err := updateCopyStatus(ctx, tx, bookID, copy_id, false)
 		if err != nil {
 			return err
 		}
@@ -42,7 +72,7 @@ func (b *BookDao) AddBookBorrowRecord(ctx context.Context, bookID uint64, borrow
 		return nil
 	})
 	if err != nil {
-		logger.LogPrinter.Errorf("DB:AddBookBorrowRecord [bookID:%v borrowerID:%v expectedReturnTime:%v copyID:%v] failed, err: %v", bookID, borrowerID, expectedReturnTime, copyID, err)
+		logger.LogPrinter.Errorf("DB:Add Book Borrow Record [bookID:%v borrowerID:%v expectedReturnTime:%v copyID:%v] failed, err: %v", bookID, borrowerID, expectedReturnTime, copyID, err)
 	}
 	return err
 }
@@ -93,7 +123,7 @@ func (b *BookDao) AddBookStock(ctx context.Context, id uint64, num uint, where *
 		return nil
 	})
 	if err != nil {
-		logger.LogPrinter.Errorf("DB:AddBookStock [id:%v num:%v where:%v] failed, err: %v", id, num, where, err)
+		logger.LogPrinter.Errorf("DB:Add Book Stock [id:%v num:%v where:%v] failed, err: %v", id, num, where, err)
 	}
 	return err
 }
@@ -123,7 +153,7 @@ func (b *BookDao) RegisterAndAddBookStock(ctx context.Context, bookInfo do.BookI
 		return nil
 	})
 	if err != nil {
-		logger.LogPrinter.Errorf("DB:RegisterAndAddBookStock [bookInfo:%v addedNum:%v where:%v] failed, err: %v", bookInfo, addedNum, where, err)
+		logger.LogPrinter.Errorf("DB:Register And Add Book Stock [bookInfo:%v addedNum:%v where:%v] failed, err: %v", bookInfo, addedNum, where, err)
 	}
 	return err
 }
@@ -212,8 +242,15 @@ func addStock(ctx context.Context, db *gorm.DB, id uint64, num uint) error {
 }
 
 func updateStockWhere(ctx context.Context, db *gorm.DB, id uint64, where string) error {
-	return db.WithContext(ctx).Debug().Table(do.BookStock{}.TableName()).
-		Where("book_id = ?", id).Update("where", where).Error
+	res := db.WithContext(ctx).Debug().Table(do.BookStock{}.TableName()).
+		Where("book_id = ?", id).Update("where", where)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return errors.New("no data updated")
+	}
+	return nil
 }
 
 func createBookInfo(ctx context.Context, db *gorm.DB, bookInfo do.BookInfo) error {
@@ -245,7 +282,37 @@ func getBookStockByID(ctx context.Context, db *gorm.DB, ids ...uint64) ([]do.Boo
 }
 
 func updateCopyStatus(ctx context.Context, db *gorm.DB, bookID uint64, copyID uint64, status bool) error {
-	return db.WithContext(ctx).Debug().Table(common.BookCopyTableName).
+	res := db.WithContext(ctx).Debug().Table(common.BookCopyTableName).
 		Where("book_id =? AND copy_id =?", bookID, copyID).
-		Update("status", status).Error
+		Update("status", status)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return errors.New("no data updated")
+	}
+	return nil
+}
+func updateBorrowRecordStatus(ctx context.Context, db *gorm.DB, bookID, copyID uint64, status string) error {
+	res := db.WithContext(ctx).Debug().Table(common.BookBorrowTableName).Where("book_id = ? AND copy_id = ?", bookID, copyID).
+		Update("status", status)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return errors.New("no data updated")
+	}
+	return nil
+}
+
+func updateBorrowRecordReturnTime(ctx context.Context, db *gorm.DB, bookID, copyID uint64, returnTime *time.Time) error {
+	res := db.Debug().Table(common.BookBorrowTableName).Where("book_id = ? AND copy_id = ?", bookID, copyID).
+		Update("return_time", returnTime)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return errors.New("no data updated")
+	}
+	return nil
 }

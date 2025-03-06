@@ -23,6 +23,7 @@ type BookRepo interface {
 	QueryBookRecord(ctx context.Context, pageSize int, currentPage int, totalPage *int, opts ...func(db *gorm.DB)) ([]BookBorrowRecord, error)
 
 	AddBookBorrowRecord(ctx context.Context, bookID uint64, borrowerID string, expectedReturnTime time.Time, copyID *uint64) error
+	UpdateBorrowStatus(ctx context.Context, bookID uint64, copyID uint64, status string) error
 }
 
 type IDer interface {
@@ -32,6 +33,10 @@ type IDer interface {
 type BookSvc struct {
 	bookRepo BookRepo
 	ider     IDer
+}
+
+func (b *BookSvc) UpdateBorrowStatus(ctx context.Context, req controller.UpdateBorrowStatusReq) error {
+	return b.bookRepo.UpdateBorrowStatus(ctx, req.BookID, req.CopyID, req.Status)
 }
 
 func (b *BookSvc) AddBorrowBookRecord(ctx context.Context, req controller.BorrowBookReq) (uint64, uint64, error) {

@@ -20,7 +20,7 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
-	err = testDB.AutoMigrate(&do.BookInfo{}, &do.BookStock{})
+	err = testDB.AutoMigrate(&do.BookInfo{}, &do.BookStock{}, &do.BookBorrow{}, &do.BookCopy{})
 	if err != nil {
 		panic(err)
 	}
@@ -165,4 +165,36 @@ func TestBookDao_GetBookTotalNum(t *testing.T) {
 		}
 		t.Log(nums)
 	})
+}
+
+func TestBookDao_AddBookBorrowRecord(t *testing.T) {
+	bookDao := &BookDao{db: testDB}
+
+	var copyID uint64
+
+	err := bookDao.AddBookBorrowRecord(context.Background(), 111, "test", time.Now(), &copyID)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestBookDao_GetBookRecordTotalNum(t *testing.T) {
+	bookDao := &BookDao{db: testDB}
+
+	num, err := bookDao.GetBookRecordTotalNum(context.Background(), func(db *gorm.DB) {
+		db.Where("status = ?", common.BookStatusWaitingReturn)
+	})
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(num)
+}
+
+func TestBookDao_UpdateBorrowStatus(t *testing.T) {
+	bookDao := &BookDao{db: testDB}
+
+	err := bookDao.UpdateBorrowStatus(context.Background(), 111, 2, common.BookStatusOverdue)
+	if err != nil {
+		t.Error(err)
+	}
 }

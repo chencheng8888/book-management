@@ -10,6 +10,7 @@ import (
 type BookBorrowSvc interface {
 	AddBorrowBookRecord(ctx context.Context, req BorrowBookReq) (bookID uint64, copyID uint64, err error)
 	QueryBookBorrowRecord(ctx context.Context, req QueryBookBorrowRecordReq, totalPage *int) ([]BookBorrowRecord, error)
+	UpdateBorrowStatus(ctx context.Context, req UpdateBorrowStatusReq) error
 }
 
 type BookBorrowCtrl struct {
@@ -84,4 +85,26 @@ func (b *BookBorrowCtrl) QueryBookBorrowRecord(c *gin.Context) {
 		"current_page":   queryBookBorrowRecordReq.Page,
 		"total_page":     totalPage,
 	}))
+}
+
+// UpdateBorrowStatus 更新借阅状态
+// @Summary 更新借阅状态
+// @Description 更新借阅状态
+// @Tags 借书
+// @Accept application/json
+// @Produce application/json
+// @Param object body UpdateBorrowStatusReq true "更新请求"
+// @Success 200 {object} UpdateBorrowStatusResp
+// @Router /api/v1/book/borrow/update_status [put]
+func (b *BookBorrowCtrl) UpdateBorrowStatus(c *gin.Context) {
+	var updatereq UpdateBorrowStatusReq
+	if err := req.ParseRequestBody(c, &updatereq); err != nil {
+		resp.SendResp(c, resp.NewRespFromErr(err))
+		return
+	}
+	if err := b.borrowSvc.UpdateBorrowStatus(c, updatereq); err != nil {
+		resp.SendResp(c, resp.NewRespFromErr(err))
+		return
+	}
+	resp.SendResp(c, resp.SuccessResp)
 }

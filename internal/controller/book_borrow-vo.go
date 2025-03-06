@@ -41,3 +41,15 @@ type QueryBookBorrowRecordResp struct {
 		TotalPage     int                `json:"total_page" binding:"required"`   //总数
 	} `json:"data" binding:"required"`
 }
+
+type UpdateBorrowStatusReq struct {
+	BookID uint64 `json:"book_id" binding:"required"` // 书本ID【这个你可以理解为一类书，比如《高等数学》】
+	CopyID uint64 `json:"copy_id" binding:"required"` // 副本ID	【这个你可以理解为具体一本书，比如《高等数学》的第一本】
+	Status string `json:"status" binding:"required"`  // 要更新的状态,取值有[waiting_return,returned,overdue]
+}
+
+type UpdateBorrowStatusResp struct {
+	Code int         `json:"code" binding:"required"`
+	Msg  string      `json:"msg" binding:"required"`
+	Data interface{} `json:"data" binding:"required"`
+}

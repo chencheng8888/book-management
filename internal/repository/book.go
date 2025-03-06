@@ -4,6 +4,7 @@ import (
 	"book-management/internal/pkg/common"
 	"book-management/internal/repository/do"
 	"book-management/internal/service"
+	"book-management/pkg/logger"
 	"context"
 	"gorm.io/gorm"
 	"math"
@@ -31,6 +32,8 @@ type BookDao interface {
 	GetBookRecordTotalNum(ctx context.Context, opt ...func(db *gorm.DB)) (int, error)
 	// 模糊查询借阅记录
 	FuzzyQueryBookBorrowRecord(ctx context.Context, pageSize int, page int, opts ...func(db *gorm.DB)) ([]do.BookBorrow, error)
+	//修改借阅状态
+	UpdateBorrowStatus(ctx context.Context, bookID, copyID uint64, status string) error
 }
 
 type UserDao interface {
@@ -50,6 +53,14 @@ type BookRepo struct {
 	bookDao   BookDao
 	userDao   UserDao
 	bookCache BookCache
+}
+
+func (b *BookRepo) UpdateBorrowStatus(ctx context.Context, bookID uint64, copyID uint64, status string) error {
+	err := b.bookDao.UpdateBorrowStatus(ctx, bookID, copyID, status)
+	if err != nil {
+		logger.LogPrinter.Errorf("DB: update borrow record[bookID:%v copyID:%v status:%v] status failed: %v", bookID, copyID, status)
+	}
+	return err
 }
 
 func (b *BookRepo) QueryBookRecord(ctx context.Context, pageSize int, currentPage int, totalPage *int, opts ...func(db *gorm.DB)) ([]service.BookBorrowRecord, error) {
