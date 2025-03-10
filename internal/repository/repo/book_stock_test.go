@@ -24,7 +24,7 @@ func TestUpdateBorrowStatus(t *testing.T) {
 	mockBookDao := mocks.NewMockBookDao(ctrl)
 
 	// 初始化BookRepo
-	bookRepo := &BookRepo{
+	bookRepo := &BookStockRepo{
 		bookDao: mockBookDao,
 	}
 
@@ -95,7 +95,7 @@ func TestBookRepo_QueryBookRecord(t *testing.T) {
 	mockBookDao := mocks.NewMockBookDao(ctrl)
 	mockUserDao := mocks.NewMockUserDao(ctrl)
 
-	bookRepo := &BookRepo{
+	bookRepo := &BookStockRepo{
 		bookDao: mockBookDao,
 		userDao: mockUserDao,
 	}
@@ -112,7 +112,7 @@ func TestBookRepo_QueryBookRecord(t *testing.T) {
 	}
 	tests := []struct {
 		name      string
-		b         *BookRepo
+		b         *BookStockRepo
 		args      args
 		mockSetup func()
 		want      []service.BookBorrowRecord
@@ -235,7 +235,7 @@ func TestBookRepo_QueryBookRecord(t *testing.T) {
 			}
 			got, err := tt.b.QueryBookRecord(tt.args.ctx, tt.args.pageSize, tt.args.currentPage, tt.args.totalPage, tt.args.opts...)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("BookRepo.QueryBookRecord() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("BookStockRepo.QueryBookRecord() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			assert.Equal(t, tt.want, got, "got and want should be equal")
@@ -251,7 +251,7 @@ func TestAddBookBorrowRecord(t *testing.T) {
 	mockBookDao := mocks.NewMockBookDao(ctrl)
 
 	// 初始化BookRepo
-	bookRepo := &BookRepo{
+	bookRepo := &BookStockRepo{
 		bookDao: mockBookDao,
 	}
 
@@ -318,7 +318,7 @@ func TestCheckBookInfoIfExist(t *testing.T) {
 	mockBookDao := mocks.NewMockBookDao(ctrl)
 
 	// 创建BookRepo实例，注入MockBookDao
-	bookRepo := &BookRepo{
+	bookRepo := &BookStockRepo{
 		bookDao: mockBookDao,
 	}
 
@@ -396,7 +396,7 @@ func TestAddBookStock_TableDriven(t *testing.T) {
 			// 配置mock行为
 			tc.setupMocks(mockCache, mockDao)
 
-			repo := &BookRepo{bookDao: mockDao, bookCache: mockCache}
+			repo := &BookStockRepo{bookDao: mockDao, bookCache: mockCache}
 			err := repo.AddBookStock(context.Background(), 1, 10, nil)
 
 			// 错误断言
@@ -571,7 +571,7 @@ func TestBookRepo_getBookInID(t *testing.T) {
 			cacheDao := mocks.NewMockBookCache(ctrl)
 
 			tt.mockFunc(bookDao, cacheDao)
-			bookRepo := &BookRepo{
+			bookRepo := &BookStockRepo{
 				bookDao:   bookDao,
 				bookCache: cacheDao,
 			}

@@ -12,21 +12,18 @@ import (
 	"time"
 )
 
-type BookRepo interface {
+type BookStockRepo interface {
 	CheckBookInfoIfExist(ctx context.Context, name, author, publisher, category string) (uint64, bool)
-
 	AddBookStock(ctx context.Context, id uint64, num uint, where *string) error
 	RegisterBookAndAddBookStock(ctx context.Context, id uint64, book BookInfo, num uint, where string) error
-
 	SearchBookByID(ctx context.Context, id uint64) (Book, error)
 	FuzzyQueryBook(ctx context.Context, pageSize int, currentPage int, totalPage *int, opts ...func(db *gorm.DB)) ([]Book, error)
-	QueryBookRecord(ctx context.Context, pageSize int, currentPage int, totalPage *int, opts ...func(db *gorm.DB)) ([]BookBorrowRecord, error)
-
-	AddBookBorrowRecord(ctx context.Context, bookID uint64, borrowerID string, expectedReturnTime time.Time, copyID *uint64) error
-	UpdateBorrowStatus(ctx context.Context, bookID uint64, copyID uint64, status string) error
 }
 
-type BookStatistics interface {
+type BookBorrowRepo interface {
+	QueryBookRecord(ctx context.Context, pageSize int, currentPage int, totalPage *int, opts ...func(db *gorm.DB)) ([]BookBorrowRecord, error)
+	AddBookBorrowRecord(ctx context.Context, bookID uint64, borrowerID string, expectedReturnTime time.Time, copyID *uint64) error
+	UpdateBorrowStatus(ctx context.Context, bookID uint64, copyID uint64, status string) error
 	GetBookStatisticsBorrow(ctx context.Context, pattern string, startTime time.Time, endTime time.Time) (map[string]int, error)
 }
 
@@ -35,9 +32,9 @@ type IDer interface {
 }
 
 type BookSvc struct {
-	bookStatistic BookStatistics
-	bookRepo      BookRepo
-	ider          IDer
+	bookBorrowRepo BookBorrowRepo
+	bookStockRepo  BookStockRepo
+	ider           IDer
 }
 
 func (b *BookSvc) GetStatisticBorrowRecords(ctx context.Context, req controller.QueryStatisticsBorrowRecordsReq) (map[string]int, error) {
@@ -47,7 +44,7 @@ func (b *BookSvc) GetStatisticBorrowRecords(ctx context.Context, req controller.
 		return nil, errcode.ParamError
 	}
 	startTime, endTime := getStartAndEndTime(req.Pattern)
-	mp, err := b.bookStatistic.GetBookStatisticsBorrow(ctx, req.Pattern, startTime, endTime)
+	mp, err := b.bookBorrowRepo.GetBookStatisticsBorrow(ctx, req.Pattern, startTime, endTime)
 	if err != nil {
 		return nil, errcode.SearchDataError
 	}
@@ -55,7 +52,7 @@ func (b *BookSvc) GetStatisticBorrowRecords(ctx context.Context, req controller.
 }
 
 func (b *BookSvc) UpdateBorrowStatus(ctx context.Context, req controller.UpdateBorrowStatusReq) error {
-	return b.bookRepo.UpdateBorrowStatus(ctx, req.BookID, req.CopyID, req.Status)
+	return b.bookBorrowRepo.UpdateBorrowStatus(ctx, req.BookID, req.CopyID, req.Status)
 }
 
 func (b *BookSvc) AddBorrowBookRecord(ctx context.Context, req controller.BorrowBookReq) (uint64, uint64, error) {
@@ -63,7 +60,7 @@ func (b *BookSvc) AddBorrowBookRecord(ctx context.Context, req controller.Borrow
 
 	var copyID uint64
 
-	err = b.bookRepo.AddBookBorrowRecord(ctx, req.BookID, req.BorrowerID, expectedTime, &copyID)
+	err = b.bookBorrowRepo.AddBookBorrowRecord(ctx, req.BookID, req.BorrowerID, expectedTime, &copyID)
 	if errors.Is(err, errcode.InsufficientBookStock) {
 		return req.BookID, copyID, err
 	}
@@ -88,7 +85,7 @@ func (b *BookSvc) QueryBookBorrowRecord(ctx context.Context, req controller.Quer
 		}
 	}
 
-	records, err := b.bookRepo.QueryBookRecord(ctx, req.PageSize, req.Page, totalPage, opt)
+	records, err := b.bookBorrowRepo.QueryBookRecord(ctx, req.PageSize, req.Page, totalPage, opt)
 	if err != nil {
 		return nil, errcode.SearchDataError
 	}
@@ -100,9 +97,9 @@ func (b *BookSvc) QueryBookBorrowRecord(ctx context.Context, req controller.Quer
 }
 
 func (b *BookSvc) AddStock(ctx context.Context, req controller.AddStockReq) error {
-	bookID, ok := b.bookRepo.CheckBookInfoIfExist(ctx, req.Name, req.Author, req.Publisher, req.Category)
+	bookID, ok := b.bookStockRepo.CheckBookInfoIfExist(ctx, req.Name, req.Author, req.Publisher, req.Category)
 	if ok {
-		err := b.bookRepo.AddBookStock(ctx, bookID, req.QuantityAdded, req.Where)
+		err := b.bookStockRepo.AddBookStock(ctx, bookID, req.QuantityAdded, req.Where)
 		if err != nil {
 			logger.LogPrinter.Errorf("add stock[id:%v addedNum:%v where: %v] failed: %v", bookID, req.QuantityAdded, req.Where, err)
 			return errcode.AddBookStockError
@@ -127,7 +124,7 @@ func (b *BookSvc) AddStock(ctx context.Context, req controller.AddStockReq) erro
 		Publisher: req.Publisher,
 		Category:  req.Category,
 	}
-	err = b.bookRepo.RegisterBookAndAddBookStock(ctx, bookID, bookInfo, req.QuantityAdded, *req.Where)
+	err = b.bookStockRepo.RegisterBookAndAddBookStock(ctx, bookID, bookInfo, req.QuantityAdded, *req.Where)
 
 	if err != nil {
 		logger.LogPrinter.Errorf("add stock[info:%v addedNum:%v where: %v] failed: %v", bookInfo, req.QuantityAdded, req.Where, err)
@@ -137,7 +134,7 @@ func (b *BookSvc) AddStock(ctx context.Context, req controller.AddStockReq) erro
 }
 
 func (b *BookSvc) SearchBookStockByID(ctx context.Context, req controller.SearchStockByBookIDReq) (controller.Book, error) {
-	book, err := b.bookRepo.SearchBookByID(ctx, req.BookID)
+	book, err := b.bookStockRepo.SearchBookByID(ctx, req.BookID)
 	if err != nil {
 		return controller.Book{}, errcode.SearchDataError
 	}
@@ -188,7 +185,7 @@ func (b *BookSvc) FuzzyQueryBookStock(ctx context.Context, req controller.FuzzyQ
 		})
 	}
 
-	books, err := b.bookRepo.FuzzyQueryBook(ctx, req.PageSize, req.Page, totalPage, Opts...)
+	books, err := b.bookStockRepo.FuzzyQueryBook(ctx, req.PageSize, req.Page, totalPage, Opts...)
 	if err != nil {
 		return nil, errcode.SearchDataError
 	}

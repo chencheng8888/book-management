@@ -19,5 +19,6 @@ help:
 
 mock:
 	@echo "start generate mock code"
-	mockgen -source internal/repository/repo/book.go -destination internal/pkg/mocks/mock_repo.go -package mocks
+	mockgen -source internal/repository/repo/book_stock.go -destination internal/pkg/mocks/mock_book_stock_repo.go -package mocks
+	mockgen -source internal/repository/repo/book_borrow.go -destination internal/pkg/mocks/mock_book_borrow_repo.go -package mocks
 	@echo  "generate mock code end"

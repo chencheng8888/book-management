@@ -2,13 +2,9 @@ package repo
 
 import (
 	"book-management/internal/pkg/common"
-	"book-management/internal/pkg/errcode"
-	"book-management/internal/pkg/locker"
 	"book-management/internal/repository/do"
 	"book-management/internal/service"
-	"book-management/pkg/logger"
 	"context"
-	"errors"
 	"math"
 	"time"
 
@@ -20,8 +16,6 @@ type BookDao interface {
 	AddBookStock(ctx context.Context, id uint64, num uint, where *string) error
 	// 注册并新增书籍库存
 	RegisterAndAddBookStock(ctx context.Context, bookInfo do.BookInfo, addedNum uint, where string) error
-	// 新增借阅记录
-	AddBookBorrowRecord(ctx context.Context, bookID uint64, borrowerID string, expectedReturnTime time.Time, copyID *uint64) error
 	// 根据ID获取书籍信息
 	GetBookInfoByID(ctx context.Context, id ...uint64) ([]do.BookInfo, error)
 	// 根据ID获取书籍库存
@@ -32,18 +26,6 @@ type BookDao interface {
 	FuzzyQueryBookID(ctx context.Context, pageSize int, page int, opts ...func(db *gorm.DB)) ([]uint64, error)
 	// 获取书籍总数
 	GetBookTotalNum(ctx context.Context, opts ...func(db *gorm.DB)) (int, error)
-	// 获取书本借阅记录总数
-	GetBookRecordTotalNum(ctx context.Context, opt ...func(db *gorm.DB)) (int, error)
-	// 模糊查询借阅记录
-	FuzzyQueryBookBorrowRecord(ctx context.Context, pageSize int, page int, opts ...func(db *gorm.DB)) ([]do.BookBorrow, error)
-	//修改借阅状态
-	UpdateBorrowStatus(ctx context.Context, bookID, copyID uint64, status string) error
-	//查询书籍借阅记录的统计数据
-	GetBookBorrowStatistics(ctx context.Context, startTime, endTime time.Time) (do.BorrowStatistics, error)
-}
-
-type UserDao interface {
-	GetUserName(ctx context.Context, id ...string) (map[string]string, error)
 }
 
 type BookCache interface {
@@ -52,98 +34,21 @@ type BookCache interface {
 
 	GetBookInfoByID(ctx context.Context, ids ...uint64) ([]do.BookInfo, []uint64)
 	GetBookStockByID(ctx context.Context, ids ...uint64) ([]do.BookStock, []uint64)
-	GetBookBorrowStatistics(ctx context.Context, pattern string) (do.BorrowStatistics, error)
 
 	SaveBookInfo(ctx context.Context, infos ...do.BookInfo) error
 	SaveBookStock(ctx context.Context, stocks ...do.BookStock) error
-
-	SaveBookBorrowStatistics(ctx context.Context, pattern string, num do.BorrowStatistics) error
 }
 
-type BookRepo struct {
+type BookStockRepo struct {
 	bookDao   BookDao
-	userDao   UserDao
 	bookCache BookCache
-	locker    *locker.Locker
 }
 
-func (b *BookRepo) GetBookStatisticsBorrow(ctx context.Context, pattern string, startTime, endTime time.Time) (map[string]int, error) {
-	//尝试从缓存中获取
-	statistics, err := b.bookCache.GetBookBorrowStatistics(ctx, pattern)
-	if err == nil {
-		return statistics.ToMap(), nil
-	}
-
-	//这个操作，应该是个耗时操作
-	if b.locker.IsLock() {
-		logger.LogPrinter.Warnf("when book_repo is getting book borrow statistic, it has encountered a lock")
-		return nil, errors.New("locker: book_repo locker is lock")
-	}
-
-	//加锁
-	b.locker.Lock()
-	defer b.locker.Unlock()
-
-	statistics, err = b.bookDao.GetBookBorrowStatistics(ctx, startTime, endTime)
-	if err == nil {
-		err = b.bookCache.SaveBookBorrowStatistics(context.Background(), pattern, statistics)
-		if err != nil {
-			logger.LogPrinter.Warnf("cache: save book borrow statistics[pattern:%v statistics:%v] failed: %v", pattern, statistics, err)
-		}
-		return statistics.ToMap(), nil
-	}
-	//获取不到直接返回
-	return nil, errors.New("get book borrow statistic failed")
-}
-
-func (b *BookRepo) UpdateBorrowStatus(ctx context.Context, bookID uint64, copyID uint64, status string) error {
-	return b.bookDao.UpdateBorrowStatus(ctx, bookID, copyID, status)
-}
-
-func (b *BookRepo) QueryBookRecord(ctx context.Context, pageSize int, currentPage int, totalPage *int, opts ...func(db *gorm.DB)) ([]service.BookBorrowRecord, error) {
-	if pageSize <= 0 || currentPage <= 0 {
-		return nil, errcode.PageError
-	}
-
-	num, err := b.bookDao.GetBookRecordTotalNum(ctx, opts...)
-	if err != nil {
-		return nil, err
-	}
-
-	pageNum := int(math.Ceil(float64(num) / float64(pageSize)))
-
-	totalPage = &pageNum
-
-	if currentPage > pageNum {
-		return nil, errcode.PageError
-	}
-
-	borrow, err := b.bookDao.FuzzyQueryBookBorrowRecord(ctx, pageSize, currentPage, opts...)
-	if err != nil {
-		return nil, err
-	}
-
-	var userID = make([]string, 0, len(borrow))
-	for _, v := range borrow {
-		userID = append(userID, v.BorrowerID)
-	}
-
-	mp, err := b.userDao.GetUserName(ctx, userID...)
-	if err != nil {
-		return nil, err
-	}
-	return batchToServiceBookRecord(borrow, mp), nil
-}
-
-func (b *BookRepo) AddBookBorrowRecord(ctx context.Context, bookID uint64, borrowerID string, expectedReturnTime time.Time, copyID *uint64) error {
-	return b.bookDao.AddBookBorrowRecord(ctx, bookID, borrowerID, expectedReturnTime, copyID)
-}
-
-func (b *BookRepo) CheckBookInfoIfExist(ctx context.Context, name, author, publisher, category string) (uint64, bool) {
+func (b *BookStockRepo) CheckBookInfoIfExist(ctx context.Context, name, author, publisher, category string) (uint64, bool) {
 	return b.bookDao.CheckBookIfExist(ctx, name, author, publisher, category)
 }
 
-func (b *BookRepo) AddBookStock(ctx context.Context, id uint64, num uint, where *string) error {
+func (b *BookStockRepo) AddBookStock(ctx context.Context, id uint64, num uint, where *string) error {
 	err := b.bookCache.DeleteBookStock(ctx, id)
 	if err != nil {
 		return err
@@ -158,7 +63,7 @@ func (b *BookRepo) AddBookStock(ctx context.Context, id uint64, num uint, where 
 	return b.bookDao.AddBookStock(ctx, id, num, where)
 }
 
-func (b *BookRepo) RegisterBookAndAddBookStock(ctx context.Context, id uint64, book service.BookInfo, num uint, where string) error {
+func (b *BookStockRepo) RegisterBookAndAddBookStock(ctx context.Context, id uint64, book service.BookInfo, num uint, where string) error {
 	clean := func(ctx context.Context) error {
 		if err := b.bookCache.DeleteBookInfo(ctx, id); err != nil {
 			return err
@@ -193,7 +98,7 @@ func (b *BookRepo) RegisterBookAndAddBookStock(ctx context.Context, id uint64, b
 	}, num, where)
 }
 
-func (b *BookRepo) SearchBookByID(ctx context.Context, id uint64) (service.Book, error) {
+func (b *BookStockRepo) SearchBookByID(ctx context.Context, id uint64) (service.Book, error) {
 	bookInfos, bookStocks, err := b.getBookInID(ctx, id)
 	if err != nil {
 		return service.Book{}, err
@@ -202,7 +107,7 @@ func (b *BookRepo) SearchBookByID(ctx context.Context, id uint64) (service.Book,
 	return toServiceBook(id, bookInfos[0], bookStocks[0]), nil
 }
 
-func (b *BookRepo) FuzzyQueryBook(ctx context.Context, pageSize int, currentPage int, totalPage *int, opts ...func(db *gorm.DB)) ([]service.Book, error) {
+func (b *BookStockRepo) FuzzyQueryBook(ctx context.Context, pageSize int, currentPage int, totalPage *int, opts ...func(db *gorm.DB)) ([]service.Book, error) {
 	num, err := b.bookDao.GetBookTotalNum(ctx)
 	if err != nil {
 		return nil, err
@@ -228,7 +133,7 @@ func (b *BookRepo) FuzzyQueryBook(ctx context.Context, pageSize int, currentPage
 	return batchToServiceBook(bookInfos, bookStocks), nil
 }
 
-func (b *BookRepo) getBookInID(ctx context.Context, ids ...uint64) ([]do.BookInfo, []do.BookStock, error) {
+func (b *BookStockRepo) getBookInID(ctx context.Context, ids ...uint64) ([]do.BookInfo, []do.BookStock, error) {
 	bookInfos, leftID := b.bookCache.GetBookInfoByID(ctx, ids...)
 
 	if len(leftID) > 0 {
