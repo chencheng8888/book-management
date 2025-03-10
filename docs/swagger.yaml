@@ -210,6 +210,29 @@ definitions:
     - data
     - msg
     type: object
+  controller.QueryStatisticsBorrowRecordsResp:
+    properties:
+      code:
+        type: integer
+      data:
+        properties:
+          art_enlightenment_num:
+            type: integer
+          children_story_num:
+            type: integer
+          science_knowledge_num:
+            type: integer
+        required:
+        - art_enlightenment_num
+        - children_story_num
+        - science_knowledge_num
+        type: object
+      msg:
+        type: string
+    required:
+    - code
+    - msg
+    type: object
   controller.SearchStockByBookIDResp:
     properties:
       code:
@@ -218,6 +241,34 @@ definitions:
         allOf:
         - $ref: '#/definitions/controller.Book'
         description: 数据
+      msg:
+        type: string
+    required:
+    - code
+    - data
+    - msg
+    type: object
+  controller.UpdateBorrowStatusReq:
+    properties:
+      book_id:
+        description: 书本ID【这个你可以理解为一类书，比如《高等数学》】
+        type: integer
+      copy_id:
+        description: "副本ID\t【这个你可以理解为具体一本书，比如《高等数学》的第一本】"
+        type: integer
+      status:
+        description: 要更新的状态,取值有[waiting_return,returned,overdue]
+        type: string
+    required:
+    - book_id
+    - copy_id
+    - status
+    type: object
+  controller.UpdateBorrowStatusResp:
+    properties:
+      code:
+        type: integer
+      data: {}
       msg:
         type: string
     required:
@@ -289,6 +340,49 @@ paths:
           schema:
             $ref: '#/definitions/controller.QueryBookBorrowRecordResp'
       summary: 查询借书记录
+      tags:
+      - 借书
+  /api/v1/book/borrow/query_statistics:
+    get:
+      consumes:
+      - application/json
+      description: 获取统计借阅记录
+      parameters:
+      - description: 示例值 "week" "month" "year"
+        in: query
+        name: pattern
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.QueryStatisticsBorrowRecordsResp'
+      summary: 获取统计借阅记录
+      tags:
+      - 借书
+  /api/v1/book/borrow/update_status:
+    put:
+      consumes:
+      - application/json
+      description: 更新借阅状态
+      parameters:
+      - description: 更新请求
+        in: body
+        name: object
+        required: true
+        schema:
+          $ref: '#/definitions/controller.UpdateBorrowStatusReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.UpdateBorrowStatusResp'
+      summary: 更新借阅状态
       tags:
       - 借书
   /api/v1/book/stock/add:

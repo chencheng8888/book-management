@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"book-management/internal/pkg/common"
 	"book-management/internal/pkg/req"
 	"book-management/internal/pkg/resp"
 	"context"
@@ -11,6 +12,7 @@ type BookBorrowSvc interface {
 	AddBorrowBookRecord(ctx context.Context, req BorrowBookReq) (bookID uint64, copyID uint64, err error)
 	QueryBookBorrowRecord(ctx context.Context, req QueryBookBorrowRecordReq, totalPage *int) ([]BookBorrowRecord, error)
 	UpdateBorrowStatus(ctx context.Context, req UpdateBorrowStatusReq) error
+	GetStatisticBorrowRecords(ctx context.Context, req QueryStatisticsBorrowRecordsReq) (map[string]int, error)
 }
 
 type BookBorrowCtrl struct {
@@ -107,4 +109,31 @@ func (b *BookBorrowCtrl) UpdateBorrowStatus(c *gin.Context) {
 		return
 	}
 	resp.SendResp(c, resp.SuccessResp)
+}
+
+// QueryStatisticsBorrowRecords 获取统计借阅记录
+// @Summary 获取统计借阅记录
+// @Description 获取统计借阅记录
+// @Tags 借书
+// @Accept application/json
+// @Produce application/json
+// @Param object query QueryStatisticsBorrowRecordsReq true "获取统计数据请求"
+// @Success 200 {object} QueryStatisticsBorrowRecordsResp
+// @Router /api/v1/book/borrow/query_statistics [get]
+func (b *BookBorrowCtrl) QueryStatisticsBorrowRecords(c *gin.Context) {
+	var statisticsBorrowRecordsReq QueryStatisticsBorrowRecordsReq
+	if err := req.ParseRequestQuery(c, &statisticsBorrowRecordsReq); err != nil {
+		resp.SendResp(c, resp.NewRespFromErr(err))
+		return
+	}
+	result, err := b.borrowSvc.GetStatisticBorrowRecords(c, statisticsBorrowRecordsReq)
+	if err != nil {
+		resp.SendResp(c, resp.NewRespFromErr(err))
+		return
+	}
+	resp.SendResp(c, resp.WithData(resp.SuccessResp, map[string]interface{}{
+		"children_story_num":    result[common.ChildrenStory],
+		"science_knowledge_num": result[common.ScienceKnowledge],
+		"art_enlightenment_num": result[common.ArtEnlightenment],
+	}))
 }

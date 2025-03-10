@@ -53,3 +53,17 @@ type UpdateBorrowStatusResp struct {
 	Msg  string      `json:"msg" binding:"required"`
 	Data interface{} `json:"data" binding:"required"`
 }
+
+type QueryStatisticsBorrowRecordsReq struct {
+	Pattern string `json:"pattern" binding:"required"` //示例值 "week" "month" "year"
+}
+
+type QueryStatisticsBorrowRecordsResp struct {
+	Code int    `json:"code" binding:"required"`
+	Msg  string `json:"msg" binding:"required"`
+	Data struct {
+		ChildrenStoryNum    int `json:"children_story_num" binding:"required"`
+		ScienceKnowledgeNum int `json:"science_knowledge_num" binding:"required"`
+		ArtEnlightenmentNum int `json:"art_enlightenment_num" binding:"required"`
+	}
+}

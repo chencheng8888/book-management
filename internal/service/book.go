@@ -26,13 +26,32 @@ type BookRepo interface {
 	UpdateBorrowStatus(ctx context.Context, bookID uint64, copyID uint64, status string) error
 }
 
+type BookStatistics interface {
+	GetBookStatisticsBorrow(ctx context.Context, pattern string, startTime time.Time, endTime time.Time) (map[string]int, error)
+}
+
 type IDer interface {
 	GenerateBookID(ctx context.Context) (uint64, error)
 }
 
 type BookSvc struct {
-	bookRepo BookRepo
-	ider     IDer
+	bookStatistic BookStatistics
+	bookRepo      BookRepo
+	ider          IDer
+}
+
+func (b *BookSvc) GetStatisticBorrowRecords(ctx context.Context, req controller.QueryStatisticsBorrowRecordsReq) (map[string]int, error) {
+	switch req.Pattern {
+	case WeekPattern, MonthPattern, YearPattern:
+	default:
+		return nil, errcode.ParamError
+	}
+	startTime, endTime := getStartAndEndTime(req.Pattern)
+	mp, err := b.bookStatistic.GetBookStatisticsBorrow(ctx, req.Pattern, startTime, endTime)
+	if err != nil {
+		return nil, errcode.SearchDataError
+	}
+	return mp, nil
 }
 
 func (b *BookSvc) UpdateBorrowStatus(ctx context.Context, req controller.UpdateBorrowStatusReq) error {

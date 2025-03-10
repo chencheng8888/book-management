@@ -1,11 +1,14 @@
-package repository
+package repo
 
 import (
 	"book-management/internal/pkg/common"
 	"book-management/internal/pkg/errcode"
+	"book-management/internal/pkg/locker"
 	"book-management/internal/repository/do"
 	"book-management/internal/service"
+	"book-management/pkg/logger"
 	"context"
+	"errors"
 	"math"
 	"time"
 
@@ -35,6 +38,8 @@ type BookDao interface {
 	FuzzyQueryBookBorrowRecord(ctx context.Context, pageSize int, page int, opts ...func(db *gorm.DB)) ([]do.BookBorrow, error)
 	//修改借阅状态
 	UpdateBorrowStatus(ctx context.Context, bookID, copyID uint64, status string) error
+	//查询书籍借阅记录的统计数据
+	GetBookBorrowStatistics(ctx context.Context, startTime, endTime time.Time) (do.BorrowStatistics, error)
 }
 
 type UserDao interface {
@@ -44,16 +49,51 @@ type UserDao interface {
 type BookCache interface {
 	DeleteBookStock(ctx context.Context, id uint64) error
 	DeleteBookInfo(ctx context.Context, id uint64) error
+
 	GetBookInfoByID(ctx context.Context, ids ...uint64) ([]do.BookInfo, []uint64)
 	GetBookStockByID(ctx context.Context, ids ...uint64) ([]do.BookStock, []uint64)
+	GetBookBorrowStatistics(ctx context.Context, pattern string) (do.BorrowStatistics, error)
+
 	SaveBookInfo(ctx context.Context, infos ...do.BookInfo) error
 	SaveBookStock(ctx context.Context, stocks ...do.BookStock) error
+
+	SaveBookBorrowStatistics(ctx context.Context, pattern string, num do.BorrowStatistics) error
 }
 
 type BookRepo struct {
 	bookDao   BookDao
 	userDao   UserDao
 	bookCache BookCache
+	locker    *locker.Locker
+}
+
+func (b *BookRepo) GetBookStatisticsBorrow(ctx context.Context, pattern string, startTime, endTime time.Time) (map[string]int, error) {
+	//尝试从缓存中获取
+	statistics, err := b.bookCache.GetBookBorrowStatistics(ctx, pattern)
+	if err == nil {
+		return statistics.ToMap(), nil
+	}
+
+	//这个操作，应该是个耗时操作
+	if b.locker.IsLock() {
+		logger.LogPrinter.Warnf("when book_repo is getting book borrow statistic, it has encountered a lock")
+		return nil, errors.New("locker: book_repo locker is lock")
+	}
+
+	//加锁
+	b.locker.Lock()
+	defer b.locker.Unlock()
+
+	statistics, err = b.bookDao.GetBookBorrowStatistics(ctx, startTime, endTime)
+	if err == nil {
+		err = b.bookCache.SaveBookBorrowStatistics(context.Background(), pattern, statistics)
+		if err != nil {
+			logger.LogPrinter.Warnf("cache: save book borrow statistics[pattern:%v statistics:%v] failed: %v", pattern, statistics, err)
+		}
+		return statistics.ToMap(), nil
+	}
+	//获取不到直接返回
+	return nil, errors.New("get book borrow statistic failed")
 }
 
 func (b *BookRepo) UpdateBorrowStatus(ctx context.Context, bookID uint64, copyID uint64, status string) error {
@@ -227,57 +267,4 @@ func getStockStatus(stock do.BookStock) string {
 		return common.EarlyWarning
 	}
 	return common.Shortage
-}
-
-func toServiceBook(id uint64, bookInfo do.BookInfo, bookStock do.BookStock) service.Book {
-	return service.Book{
-		BookID: id,
-		Info: service.BookInfo{
-			Name:      bookInfo.Name,
-			Author:    bookInfo.Author,
-			Publisher: bookInfo.Publisher,
-			Category:  bookInfo.Category,
-		},
-		Stock: service.BookStock{
-			Stock:     bookStock.Stock,
-			Status:    getStockStatus(bookStock),
-			Where:     bookStock.Where,
-			AddedTime: bookStock.UpdatedAt,
-		},
-	}
-}
-
-func batchToServiceBook(bookInfos []do.BookInfo, bookStocks []do.BookStock) []service.Book {
-	infoMap := make(map[uint64]do.BookInfo, len(bookInfos))
-	stockMap := make(map[uint64]do.BookStock, len(bookStocks))
-
-	for _, info := range bookInfos {
-		infoMap[info.ID] = info
-	}
-	for _, stock := range bookStocks {
-		stockMap[stock.BookID] = stock
-	}
-
-	result := make([]service.Book, 0, len(bookInfos))
-
-	for id, _ := range infoMap {
-		result = append(result, toServiceBook(id, infoMap[id], stockMap[id]))
-	}
-	return result
-}
-
-func batchToServiceBookRecord(borrows []do.BookBorrow, user map[string]string) []service.BookBorrowRecord {
-	var records = make([]service.BookBorrowRecord, 0, len(borrows))
-	for _, borrow := range borrows {
-		records = append(records, service.BookBorrowRecord{
-			BookID:       borrow.BookID,
-			BorrowerID:   borrow.BorrowerID,
-			Borrower:     user[borrow.BorrowerID],
-			CopyID:       borrow.CopyID,
-			BorrowTime:   borrow.CreatedTime,
-			ExpectedTime: borrow.ExpectedReturnTime,
-			ReturnStatus: borrow.Status,
-		})
-	}
-	return records
 }

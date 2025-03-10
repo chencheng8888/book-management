@@ -103,6 +103,72 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/book/borrow/query_statistics": {
+            "get": {
+                "description": "获取统计借阅记录",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "借书"
+                ],
+                "summary": "获取统计借阅记录",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "示例值 \"week\" \"month\" \"year\"",
+                        "name": "pattern",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controller.QueryStatisticsBorrowRecordsResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/book/borrow/update_status": {
+            "put": {
+                "description": "更新借阅状态",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "借书"
+                ],
+                "summary": "更新借阅状态",
+                "parameters": [
+                    {
+                        "description": "更新请求",
+                        "name": "object",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controller.UpdateBorrowStatusReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controller.UpdateBorrowStatusResp"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/book/stock/add": {
             "post": {
                 "description": "添加库存接口，参数的where是可选参数",
@@ -529,6 +595,40 @@ const docTemplate = `{
                 }
             }
         },
+        "controller.QueryStatisticsBorrowRecordsResp": {
+            "type": "object",
+            "required": [
+                "code",
+                "msg"
+            ],
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "object",
+                    "required": [
+                        "art_enlightenment_num",
+                        "children_story_num",
+                        "science_knowledge_num"
+                    ],
+                    "properties": {
+                        "art_enlightenment_num": {
+                            "type": "integer"
+                        },
+                        "children_story_num": {
+                            "type": "integer"
+                        },
+                        "science_knowledge_num": {
+                            "type": "integer"
+                        }
+                    }
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
         "controller.SearchStockByBookIDResp": {
             "type": "object",
             "required": [
@@ -548,6 +648,45 @@ const docTemplate = `{
                         }
                     ]
                 },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "controller.UpdateBorrowStatusReq": {
+            "type": "object",
+            "required": [
+                "book_id",
+                "copy_id",
+                "status"
+            ],
+            "properties": {
+                "book_id": {
+                    "description": "书本ID【这个你可以理解为一类书，比如《高等数学》】",
+                    "type": "integer"
+                },
+                "copy_id": {
+                    "description": "副本ID\t【这个你可以理解为具体一本书，比如《高等数学》的第一本】",
+                    "type": "integer"
+                },
+                "status": {
+                    "description": "要更新的状态,取值有[waiting_return,returned,overdue]",
+                    "type": "string"
+                }
+            }
+        },
+        "controller.UpdateBorrowStatusResp": {
+            "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {},
                 "msg": {
                     "type": "string"
                 }

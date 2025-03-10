@@ -51,3 +51,24 @@ func Intersection[T comparable](a, b []T) []T {
 	}
 	return result
 }
+
+func GetShanghaiTime() time.Time {
+	local, _ := time.LoadLocation("Asia/Shanghai")
+	return time.Now().In(local)
+}
+
+func GetWeekStartTime(endTime time.Time) (startTime time.Time) {
+	weekDay := endTime.Weekday()
+	if weekDay == time.Sunday {
+		return endTime.AddDate(0, 0, -6)
+	} else {
+		return endTime.AddDate(0, 0, -int(weekDay)+1)
+	}
+}
+func GetMonthStartTime(endTime time.Time) (startTime time.Time) {
+	return time.Date(endTime.Year(), endTime.Month(), 1, startTime.Hour(), startTime.Minute(), startTime.Second(), startTime.Nanosecond(), endTime.Location())
+}
+
+func GetYearStartTime(endTime time.Time) (startTime time.Time) {
+	return time.Date(endTime.Year(), 1, 1, startTime.Hour(), startTime.Minute(), startTime.Second(), startTime.Nanosecond(), endTime.Location())
+}

@@ -15,6 +15,32 @@ type BookDao struct {
 	db *gorm.DB
 }
 
+func (b *BookDao) GetBookBorrowStatistics(ctx context.Context, startTime, endTime time.Time) (do.BorrowStatistics, error) {
+	db := b.db.WithContext(ctx).Table(common.BookBorrowTableName)
+	type tmp struct {
+		Category string
+		Num      int
+	}
+	var res []tmp
+	err := db.Debug().Select("category, COUNT(*) num").Joins(fmt.Sprintf("JOIN %s ON %s.book_id = %s.id", common.BookTableName, common.BookBorrowTableName, common.BookTableName)).
+		Group("category").Find(&res).Error
+	if err != nil {
+		return do.BorrowStatistics{}, err
+	}
+
+	var ans do.BorrowStatistics
+	for _, v := range res {
+		if v.Category == common.ChildrenStory {
+			ans.ChildrenStoryNum = v.Num
+		} else if v.Category == common.ScienceKnowledge {
+			ans.ScienceKnowledgeNum = v.Num
+		} else if v.Category == common.ArtEnlightenment {
+			ans.ArtEnlightenmentNum = v.Num
+		}
+	}
+	return ans, nil
+}
+
 func (b *BookDao) UpdateBorrowStatus(ctx context.Context, bookID, copyID uint64, status string) error {
 	err := b.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		err := updateBorrowRecordStatus(ctx, tx, bookID, copyID, status)
@@ -112,6 +138,7 @@ func (b *BookDao) AddBookStock(ctx context.Context, id uint64, num uint, where *
 		if !checkBookStockIfExistByID(ctx, tx, id) {
 			return errors.New("book stock is not exist")
 		}
+		//TODO: 添加积分
 		if err := addStock(ctx, tx, id, num); err != nil {
 			return err
 		}

@@ -11,10 +11,36 @@ import (
 )
 
 type BookCache struct {
-	rdb                *redis.Client
-	bookInfoExpire     time.Duration
-	bookStockExpire    time.Duration
-	bookTotalNumExpire time.Duration
+	rdb                        *redis.Client
+	bookInfoExpire             time.Duration
+	bookStockExpire            time.Duration
+	bookBorrowStatisticsExpire time.Duration
+}
+
+func (b *BookCache) GetBookBorrowStatistics(ctx context.Context, pattern string) (do.BorrowStatistics, error) {
+	key := b.generateBookBorrowStatisticsKey(pattern)
+	res, err := b.rdb.Get(ctx, key).Result()
+	if err != nil {
+		return do.BorrowStatistics{}, err
+	}
+	var statistics do.BorrowStatistics
+	if err := json.Unmarshal([]byte(res), &statistics); err != nil {
+		return do.BorrowStatistics{}, err
+	}
+	return statistics, nil
+}
+
+func (b *BookCache) SaveBookBorrowStatistics(ctx context.Context, pattern string, num do.BorrowStatistics) error {
+	key := b.generateBookBorrowStatisticsKey(pattern)
+	val, err := json.Marshal(&num)
+	if err != nil {
+		return err
+	}
+	err = b.rdb.Set(ctx, key, val, b.bookBorrowStatisticsExpire).Err()
+	if err != nil {
+		logger.LogPrinter.Warnf("save book borrow statistics in cache failed, err: %v", err)
+	}
+	return err
 }
 
 func (b *BookCache) DeleteBookStock(ctx context.Context, id uint64) error {
@@ -164,4 +190,8 @@ func (b *BookCache) generateBookInfoKey(id uint64) string {
 }
 func (b *BookCache) generateBookStockKey(id uint64) string {
 	return fmt.Sprintf("book-stock:%d", id)
+}
+
+func (b *BookCache) generateBookBorrowStatisticsKey(pattern string) string {
+	return fmt.Sprintf("book-borrow-statistics:%s", pattern)
 }

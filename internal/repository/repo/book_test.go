@@ -1,4 +1,4 @@
-package repository
+package repo
 
 import (
 	"book-management/internal/pkg/mocks"
