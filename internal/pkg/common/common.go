@@ -26,4 +26,6 @@ const (
 	BookStockTableName  = "book_stocks"
 	BookCopyTableName   = "book_copy"
 	BookBorrowTableName = "book_borrow"
+
+	UserTableName = "users"
 )

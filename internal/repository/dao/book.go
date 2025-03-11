@@ -12,7 +12,8 @@ import (
 )
 
 type BookDao struct {
-	db *gorm.DB
+	db          *gorm.DB
+	fixedPoints int
 }
 
 func (b *BookDao) GetBookBorrowStatistics(ctx context.Context, startTime, endTime time.Time) (do.BorrowStatistics, error) {
@@ -71,6 +72,22 @@ func (b *BookDao) UpdateBorrowStatus(ctx context.Context, bookID, copyID uint64,
 func (b *BookDao) AddBookBorrowRecord(ctx context.Context, bookID uint64, borrowerID string, expectedReturnTime time.Time, copyID *uint64) error {
 	var copy_id uint64
 	err := b.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		//先检查用户是否存在
+		exist, err := checkUserIfExist(ctx, tx, borrowerID)
+		if err != nil {
+			return err
+		}
+		if !exist {
+			return errors.New("user is not exist")
+		}
+
+		//添加积分
+		err = addUserIntegral(ctx, tx, borrowerID, b.fixedPoints)
+		if err != nil {
+			return err
+		}
+
+		//获取空闲书籍
 		res := tx.Debug().Table(common.BookCopyTableName).Select("copy_id").Where("book_id = ? AND status = ?", bookID, true).Scan(&copy_id)
 		if res.Error != nil {
 			return res.Error
@@ -79,10 +96,12 @@ func (b *BookDao) AddBookBorrowRecord(ctx context.Context, bookID uint64, borrow
 			return errors.New("no excess inventory")
 		}
 		copyID = &copy_id
-		err := updateCopyStatus(ctx, tx, bookID, copy_id, false)
+		//更新书籍借阅状态
+		err = updateCopyStatus(ctx, tx, bookID, copy_id, false)
 		if err != nil {
 			return err
 		}
+		//添加借阅记录
 		err = tx.Debug().Table(common.BookBorrowTableName).Create(&do.BookBorrow{
 			BookID:             bookID,
 			CopyID:             copy_id,
@@ -138,7 +157,6 @@ func (b *BookDao) AddBookStock(ctx context.Context, id uint64, num uint, where *
 		if !checkBookStockIfExistByID(ctx, tx, id) {
 			return errors.New("book stock is not exist")
 		}
-		//TODO: 添加积分
 		if err := addStock(ctx, tx, id, num); err != nil {
 			return err
 		}
