@@ -17,6 +17,15 @@ type BookCache struct {
 	bookBorrowStatisticsExpire time.Duration
 }
 
+func NewBookCache(rdb *redis.Client) *BookCache {
+	return &BookCache{
+		rdb:                        rdb,
+		bookInfoExpire:             7 * 24 * time.Hour,
+		bookStockExpire:            7 * 24 * time.Hour,
+		bookBorrowStatisticsExpire: 24 * time.Hour,
+	}
+}
+
 func (b *BookCache) GetBookBorrowStatistics(ctx context.Context, pattern string) (do.BorrowStatistics, error) {
 	key := b.generateBookBorrowStatisticsKey(pattern)
 	res, err := b.rdb.Get(ctx, key).Result()

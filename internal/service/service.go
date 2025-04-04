@@ -6,7 +6,9 @@ import (
 	"time"
 )
 
-var ProviderSet = wire.NewSet()
+var ProviderSet = wire.NewSet(
+	NewBookSvc,
+	NewUserSvc)
 
 var (
 	WeekPattern  = "week_pattern"

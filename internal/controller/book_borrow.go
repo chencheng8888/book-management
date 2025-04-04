@@ -19,11 +19,19 @@ type BookBorrowCtrl struct {
 	borrowSvc BookBorrowSvc
 }
 
+func NewBookBorrowCtrl(borrowSvc BookBorrowSvc) *BookBorrowCtrl {
+	return &BookBorrowCtrl{
+		borrowSvc: borrowSvc,
+	}
+}
+
 func (b *BookBorrowCtrl) RegisterRoute(r *gin.Engine) {
 	g := r.Group("/api/v1/book/borrow")
 	{
 		g.POST("/add", b.BorrowBook)
 		g.GET("/query", b.QueryBookBorrowRecord)
+		g.PUT("/update_status", b.UpdateBorrowStatus)
+		g.GET("/query_statistics", b.QueryStatisticsBorrowRecords)
 	}
 }
 
@@ -33,6 +41,7 @@ func (b *BookBorrowCtrl) RegisterRoute(r *gin.Engine) {
 // @Tags 借书
 // @Accept application/json
 // @Produce application/json
+// @Param Authorization header string true "鉴权"
 // @Param object body BorrowBookReq true "借书请求"
 // @Success 200 {object} BorrowBookResp
 // @Router /api/v1/book/borrow/add [post]
@@ -63,6 +72,7 @@ func (b *BookBorrowCtrl) BorrowBook(c *gin.Context) {
 // @Tags 借书
 // @Accept application/json
 // @Produce application/json
+// @Param Authorization header string true "鉴权"
 // @Param object query QueryBookBorrowRecordReq true "查询请求"
 // @Success 200 {object} QueryBookBorrowRecordResp
 // @Router /api/v1/book/borrow/query [get]
@@ -73,6 +83,10 @@ func (b *BookBorrowCtrl) QueryBookBorrowRecord(c *gin.Context) {
 	if err := req.ParseRequestQuery(c, &queryBookBorrowRecordReq); err != nil {
 		resp.SendResp(c, resp.NewRespFromErr(err))
 		return
+	}
+
+	if queryBookBorrowRecordReq.QueryStatus != nil && *queryBookBorrowRecordReq.QueryStatus == "" {
+		queryBookBorrowRecordReq.QueryStatus = nil
 	}
 
 	var totalPage int
@@ -95,6 +109,7 @@ func (b *BookBorrowCtrl) QueryBookBorrowRecord(c *gin.Context) {
 // @Tags 借书
 // @Accept application/json
 // @Produce application/json
+// @Param Authorization header string true "鉴权"
 // @Param object body UpdateBorrowStatusReq true "更新请求"
 // @Success 200 {object} UpdateBorrowStatusResp
 // @Router /api/v1/book/borrow/update_status [put]
@@ -117,6 +132,7 @@ func (b *BookBorrowCtrl) UpdateBorrowStatus(c *gin.Context) {
 // @Tags 借书
 // @Accept application/json
 // @Produce application/json
+// @Param Authorization header string true "鉴权"
 // @Param object query QueryStatisticsBorrowRecordsReq true "获取统计数据请求"
 // @Success 200 {object} QueryStatisticsBorrowRecordsResp
 // @Router /api/v1/book/borrow/query_statistics [get]

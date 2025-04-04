@@ -7,17 +7,45 @@
 package main
 
 import (
+	"book-management/configs"
 	"book-management/internal/controller"
+	"book-management/internal/ioc"
+	"book-management/internal/middleware"
+	"book-management/internal/repository/cache"
+	"book-management/internal/repository/dao"
+	"book-management/internal/repository/repo"
 	"book-management/internal/route"
+	"book-management/internal/service"
 )
 
 // Injectors from wire.go:
 
-func InitializeApp() *App {
-	middleWareSet := route.NewGlobalMiddlewareSet()
+func InitializeApp(config configs.AppConfig) (*App, error) {
+	client, err := ioc.NewCache(config)
+	if err != nil {
+		return nil, err
+	}
+	authCtrl := controller.NewAuthCtrl(client, config)
+	myMiddleware := middleware.NewMyMiddleware(authCtrl)
+	v := middleware.NewMiddlewares(myMiddleware)
 	pingController := controller.NewPingController()
-	webHandlerSet := route.NewWebHandlerSet(pingController)
-	engine := route.NewRouter(middleWareSet, webHandlerSet)
+	db, err := ioc.NewGormDB(config)
+	if err != nil {
+		return nil, err
+	}
+	bookDao := dao.NewBookDao(db)
+	bookCache := cache.NewBookCache(client)
+	userDao := dao.NewUserDao(db)
+	bookBorrowRepo := repo.NewBookBorrowRepo(bookDao, bookCache, userDao)
+	bookStockRepo := repo.NewBookStockRepo(bookDao, bookCache)
+	bookSvc := service.NewBookSvc(bookBorrowRepo, bookStockRepo)
+	bookStockCtrl := controller.NewBookStockCtrl(bookSvc)
+	bookBorrowCtrl := controller.NewBookBorrowCtrl(bookSvc)
+	userRepo := repo.NewUserRepo(userDao)
+	userSvc := service.NewUserSvc(userRepo)
+	userCtrl := controller.NewUserCtrl(userSvc)
+	v2 := controller.NewCtrl(pingController, authCtrl, bookStockCtrl, bookBorrowCtrl, userCtrl)
+	engine := route.NewRouter(v, v2)
 	app := newApp(engine)
-	return app
+	return app, nil
 }

@@ -6,17 +6,17 @@ import (
 )
 
 type User struct {
-	ID        string    `gorm:"column:id;primaryKey"`
-	Name      string    `gorm:"column:name"`
-	Phone     string    `gorm:"column:phone;uniqueIndex"`
+	ID        uint64    `gorm:"column:id;primaryKey"`
+	Name      string    `gorm:"type:varchar(255);column:name"`
+	Phone     string    `gorm:"type:varchar(30);column:phone;uniqueIndex"`
 	Integral  uint      `gorm:"column:integral"`
-	Gender    string    `gorm:"column:gender"`
+	Gender    string    `gorm:"type:varchar(10);column:gender"`
 	IsVip     bool      `gorm:"column:is_vip"`
-	VipLevels *string   `gorm:"column:vip_levels"`
-	Status    string    `gorm:"column:status"`
+	VipLevels *string   `gorm:"type:varchar(30);column:vip_levels"`
+	Status    string    `gorm:"type:varchar(30);column:status"`
 	CreatedAt time.Time `gorm:"column:created_at"`
 }
 
-func (u *User) TableName() string {
+func (u User) TableName() string {
 	return common.UserTableName
 }

@@ -6,7 +6,7 @@ type AddStockReq struct {
 	Name          string  `json:"name" binding:"required"`           //书本名称
 	Author        string  `json:"author" binding:"required"`         // 作者
 	Publisher     string  `json:"publisher" binding:"required"`      //出版社
-	Category      string  `json:"category" binding:"required"`       //类别
+	Category      string  `json:"category" binding:"required"`       //类别,目前有[children_story,science_knowledge,art_enlightenment]
 	QuantityAdded uint    `json:"quantity_added" binding:"required"` // 添加的库存数目
 	Where         *string `json:"where"`                             // 库存位置
 }
@@ -31,10 +31,6 @@ type Book struct {
 	CreatedAt   string `json:"created_at" binding:"required"`    //入库时间
 }
 
-type SearchStockByBookIDReq struct {
-	BookID uint64 `json:"book_id" form:"book_id" binding:"required"` // 书本ID
-}
-
 type SearchStockByBookIDResp struct {
 	Code int    `json:"code" binding:"required"`
 	Msg  string `json:"msg" binding:"required"`
@@ -42,13 +38,12 @@ type SearchStockByBookIDResp struct {
 }
 
 type FuzzyQueryBookStockReq struct {
-	Name          *string `json:"name" form:"name"`                              //书本名称
-	Author        *string `json:"author" form:"author"`                          //作者
-	Category      *string `json:"category" form:"category"`                      //类别
-	AddStockTime  *string `json:"add_stock_time" form:"add_stock_time"`          //入库时间
-	AddStockWhere *string `json:"add_stock_where" form:"add_stock_where"`        // 入库地点
-	Page          int     `json:"page" form:"page" binding:"required"`           //第几页
-	PageSize      int     `json:"page_size" form:"page_size" binding:"required"` //每页大小
+	BookID   *uint64 `json:"book_id" form:"book_id"`                        //书本ID
+	Name     *string `json:"name" form:"name"`                              //书本名称
+	Author   *string `json:"author" form:"author"`                          //作者
+	Category *string `json:"category" form:"category"`                      //类别
+	Page     int     `json:"page" form:"page" binding:"required"`           //第几页
+	PageSize int     `json:"page_size" form:"page_size" binding:"required"` //每页大小
 }
 type FuzzyQueryBookStockResp struct {
 	Code int    `json:"code" binding:"required"`
@@ -61,8 +56,8 @@ type FuzzyQueryBookStockResp struct {
 }
 
 //type ListBookStockReq struct {
-//	Page     int `json:"page" form:"page" binding:"required"`           //第几页
-//	PageSize int `json:"page_size" form:"page_size" binding:"required"` //每页大小
+//	page     int `json:"page" form:"page" binding:"required"`           //第几页
+//	pageSize int `json:"page_size" form:"page_size" binding:"required"` //每页大小
 //}
 //type ListBookStockResp struct {
 //	Code int    `json:"code" binding:"required"`

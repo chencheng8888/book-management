@@ -42,7 +42,7 @@ func batchToServiceBook(bookInfos []do.BookInfo, bookStocks []do.BookStock) []se
 	return result
 }
 
-func batchToServiceBookRecord(borrows []do.BookBorrow, user map[string]string) []service.BookBorrowRecord {
+func batchToServiceBookRecord(borrows []do.BookBorrow, user map[uint64]string) []service.BookBorrowRecord {
 	var records = make([]service.BookBorrowRecord, 0, len(borrows))
 	for _, borrow := range borrows {
 		records = append(records, service.BookBorrowRecord{
@@ -56,4 +56,24 @@ func batchToServiceBookRecord(borrows []do.BookBorrow, user map[string]string) [
 		})
 	}
 	return records
+}
+
+func toServiceUser(user do.User) service.User {
+	var res service.User
+	res.ID = user.ID
+	res.Status = user.Status
+	res.Phone = user.Phone
+	res.Name = user.Name
+	res.Gender = user.Gender
+	res.Integral = user.Integral
+	res.IsVip = user.IsVip
+	res.VipLevels = user.VipLevels
+	return res
+}
+func batchToServiceUser(users []do.User) []service.User {
+	var res = make([]service.User, 0, len(users))
+	for _, user := range users {
+		res = append(res, toServiceUser(user))
+	}
+	return res
 }

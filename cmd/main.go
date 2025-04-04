@@ -48,10 +48,16 @@ func main() {
 	//解析命令行参数
 	flag.Parse()
 
-	if err := configs.LoadConfigs(flagConf); err != nil {
+	var appConf configs.AppConfig
+	if err := appConf.LoadConfig(flagConf); err != nil {
+		logger.LogPrinter.Error("load config error:", err)
+		return
+	}
+	logger.LogPrinter.Info(appConf)
+
+	app, err := InitializeApp(appConf)
+	if err != nil {
 		panic(err)
 	}
-
-	app := InitializeApp()
 	app.Run()
 }

@@ -6,7 +6,7 @@ definitions:
         description: 作者
         type: string
       category:
-        description: 类别
+        description: 类别,目前有[children_story,science_knowledge,art_enlightenment]
         type: string
       name:
         description: 书本名称
@@ -101,7 +101,7 @@ definitions:
         type: string
       user_id:
         description: 用户ID
-        type: string
+        type: integer
       user_name:
         description: 用户名
         type: string
@@ -120,7 +120,7 @@ definitions:
         type: integer
       borrower_id:
         description: 借阅者ID
-        type: string
+        type: integer
       expected_return_time:
         description: 预计归还时间,格式为"2006-01-02"
         type: string
@@ -182,6 +182,43 @@ definitions:
     - data
     - msg
     type: object
+  controller.GenerateCaptchaResp:
+    properties:
+      code:
+        type: integer
+      data:
+        properties:
+          image:
+            type: string
+          verification_code_id:
+            type: string
+        required:
+        - image
+        - verification_code_id
+        type: object
+      msg:
+        type: string
+    required:
+    - code
+    - msg
+    type: object
+  controller.LoginResp:
+    properties:
+      code:
+        type: integer
+      data:
+        properties:
+          token:
+            type: string
+        required:
+        - token
+        type: object
+      msg:
+        type: string
+    required:
+    - code
+    - msg
+    type: object
   controller.QueryBookBorrowRecordResp:
     properties:
       code:
@@ -233,14 +270,25 @@ definitions:
     - code
     - msg
     type: object
-  controller.SearchStockByBookIDResp:
+  controller.SearchUserResp:
     properties:
       code:
         type: integer
       data:
-        allOf:
-        - $ref: '#/definitions/controller.Book'
-        description: 数据
+        properties:
+          current_page:
+            type: integer
+          total_page:
+            type: integer
+          users:
+            items:
+              $ref: '#/definitions/controller.User'
+            type: array
+        required:
+        - current_page
+        - total_page
+        - users
+        type: object
       msg:
         type: string
     required:
@@ -276,6 +324,41 @@ definitions:
     - data
     - msg
     type: object
+  controller.User:
+    properties:
+      gender:
+        description: 性别
+        type: string
+      id:
+        description: 用户ID
+        type: integer
+      integral:
+        description: 积分
+        type: integer
+      is_vip:
+        description: 是否是会员
+        type: boolean
+      name:
+        description: 姓名
+        type: string
+      phone:
+        description: 手机号
+        type: string
+      status:
+        description: 用户状态
+        type: string
+      vip_levels:
+        description: 会员等级
+        type: string
+    required:
+    - gender
+    - id
+    - integral
+    - is_vip
+    - name
+    - phone
+    - status
+    type: object
 host: localhost:8989
 info:
   contact:
@@ -296,6 +379,11 @@ paths:
       - application/json
       description: 借书接口
       parameters:
+      - description: 鉴权
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: 借书请求
         in: body
         name: object
@@ -318,6 +406,11 @@ paths:
       - application/json
       description: 查询借书记录
       parameters:
+      - description: 鉴权
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: 第几页
         in: query
         name: page
@@ -348,6 +441,11 @@ paths:
       - application/json
       description: 获取统计借阅记录
       parameters:
+      - description: 鉴权
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: 示例值 "week" "month" "year"
         in: query
         name: pattern
@@ -369,6 +467,11 @@ paths:
       - application/json
       description: 更新借阅状态
       parameters:
+      - description: 鉴权
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: 更新请求
         in: body
         name: object
@@ -391,6 +494,11 @@ paths:
       - application/json
       description: 添加库存接口，参数的where是可选参数
       parameters:
+      - description: 鉴权
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: 增加库存请求
         in: body
         name: object
@@ -413,18 +521,19 @@ paths:
       - application/json
       description: 模糊查询库存信息,没有任何查询条件就是直接列出数据
       parameters:
-      - description: 入库时间
-        in: query
-        name: add_stock_time
-        type: string
-      - description: 入库地点
-        in: query
-        name: add_stock_where
+      - description: 鉴权
+        in: header
+        name: Authorization
+        required: true
         type: string
       - description: 作者
         in: query
         name: author
         type: string
+      - description: 书本ID
+        in: query
+        name: book_id
+        type: integer
       - description: 类别
         in: query
         name: category
@@ -451,27 +560,6 @@ paths:
           schema:
             $ref: '#/definitions/controller.FuzzyQueryBookStockResp'
       summary: 模糊查询库存信息
-      tags:
-      - 库存
-  /api/v1/book/stock/searchByID:
-    get:
-      consumes:
-      - application/json
-      description: 根据ID查询库存信息
-      parameters:
-      - description: 书本ID
-        in: query
-        name: book_id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/controller.SearchStockByBookIDResp'
-      summary: 根据ID查询库存信息
       tags:
       - 库存
 swagger: "2.0"

@@ -3,19 +3,19 @@ package repo
 import (
 	"book-management/internal/pkg/errcode"
 	"book-management/internal/pkg/locker"
+	"book-management/internal/pkg/tool"
 	"book-management/internal/repository/do"
 	"book-management/internal/service"
 	"book-management/pkg/logger"
 	"context"
 	"errors"
 	"gorm.io/gorm"
-	"math"
 	"time"
 )
 
 type BookBorrowDao interface {
 	// 新增借阅记录
-	AddBookBorrowRecord(ctx context.Context, bookID uint64, borrowerID string, expectedReturnTime time.Time, copyID *uint64) error
+	AddBookBorrowRecord(ctx context.Context, bookID uint64, borrowerID uint64, expectedReturnTime time.Time, copyID *uint64) error
 	// 获取书本借阅记录总数
 	GetBookRecordTotalNum(ctx context.Context, opt ...func(db *gorm.DB)) (int, error)
 	// 模糊查询借阅记录
@@ -30,14 +30,23 @@ type BookBorrowCache interface {
 	GetBookBorrowStatistics(ctx context.Context, pattern string) (do.BorrowStatistics, error)
 	SaveBookBorrowStatistics(ctx context.Context, pattern string, num do.BorrowStatistics) error
 }
-type UserDao interface {
-	GetUserName(ctx context.Context, id ...string) (map[string]string, error)
+type GetUserNamer interface {
+	GetUserName(ctx context.Context, id ...uint64) (map[uint64]string, error)
 }
 type BookBorrowRepo struct {
 	bookBorrowDao   BookBorrowDao
 	bookBorrowCache BookBorrowCache
-	userDao         UserDao
+	userDao         GetUserNamer
 	locker          *locker.Locker
+}
+
+func NewBookBorrowRepo(bookBorrowDao BookBorrowDao, bookBorrowCache BookBorrowCache, userDao GetUserNamer) *BookBorrowRepo {
+	return &BookBorrowRepo{
+		bookBorrowDao:   bookBorrowDao,
+		bookBorrowCache: bookBorrowCache,
+		userDao:         userDao,
+		locker:          locker.NewLocker(),
+	}
 }
 
 func (b *BookBorrowRepo) GetBookStatisticsBorrow(ctx context.Context, pattern string, startTime, endTime time.Time) (map[string]int, error) {
@@ -74,7 +83,8 @@ func (b *BookBorrowRepo) UpdateBorrowStatus(ctx context.Context, bookID uint64, 
 }
 
 func (b *BookBorrowRepo) QueryBookRecord(ctx context.Context, pageSize int, currentPage int, totalPage *int, opts ...func(db *gorm.DB)) ([]service.BookBorrowRecord, error) {
-	if pageSize <= 0 || currentPage <= 0 {
+
+	if totalPage == nil || pageSize <= 0 || currentPage <= 0 {
 		return nil, errcode.PageError
 	}
 
@@ -83,11 +93,9 @@ func (b *BookBorrowRepo) QueryBookRecord(ctx context.Context, pageSize int, curr
 		return nil, err
 	}
 
-	pageNum := int(math.Ceil(float64(num) / float64(pageSize)))
+	*totalPage = tool.GetPage(num, pageSize)
 
-	totalPage = &pageNum
-
-	if currentPage > pageNum {
+	if currentPage > *totalPage {
 		return nil, errcode.PageError
 	}
 
@@ -96,7 +104,7 @@ func (b *BookBorrowRepo) QueryBookRecord(ctx context.Context, pageSize int, curr
 		return nil, err
 	}
 
-	var userID = make([]string, 0, len(borrow))
+	var userID = make([]uint64, 0, len(borrow))
 	for _, v := range borrow {
 		userID = append(userID, v.BorrowerID)
 	}
@@ -108,6 +116,6 @@ func (b *BookBorrowRepo) QueryBookRecord(ctx context.Context, pageSize int, curr
 	return batchToServiceBookRecord(borrow, mp), nil
 }
 
-func (b *BookBorrowRepo) AddBookBorrowRecord(ctx context.Context, bookID uint64, borrowerID string, expectedReturnTime time.Time, copyID *uint64) error {
+func (b *BookBorrowRepo) AddBookBorrowRecord(ctx context.Context, bookID uint64, borrowerID uint64, expectedReturnTime time.Time, copyID *uint64) error {
 	return b.bookBorrowDao.AddBookBorrowRecord(ctx, bookID, borrowerID, expectedReturnTime, copyID)
 }

@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"github.com/go-kratos/kratos/v2/errors"
 	"gorm.io/gorm"
+	"math/rand"
+	"sync"
 	"time"
 )
 
@@ -16,25 +18,32 @@ type BookStockRepo interface {
 	CheckBookInfoIfExist(ctx context.Context, name, author, publisher, category string) (uint64, bool)
 	AddBookStock(ctx context.Context, id uint64, num uint, where *string) error
 	RegisterBookAndAddBookStock(ctx context.Context, id uint64, book BookInfo, num uint, where string) error
-	SearchBookByID(ctx context.Context, id uint64) (Book, error)
 	FuzzyQueryBook(ctx context.Context, pageSize int, currentPage int, totalPage *int, opts ...func(db *gorm.DB)) ([]Book, error)
 }
 
 type BookBorrowRepo interface {
 	QueryBookRecord(ctx context.Context, pageSize int, currentPage int, totalPage *int, opts ...func(db *gorm.DB)) ([]BookBorrowRecord, error)
-	AddBookBorrowRecord(ctx context.Context, bookID uint64, borrowerID string, expectedReturnTime time.Time, copyID *uint64) error
+	AddBookBorrowRecord(ctx context.Context, bookID uint64, borrowerID uint64, expectedReturnTime time.Time, copyID *uint64) error
 	UpdateBorrowStatus(ctx context.Context, bookID uint64, copyID uint64, status string) error
 	GetBookStatisticsBorrow(ctx context.Context, pattern string, startTime time.Time, endTime time.Time) (map[string]int, error)
 }
 
-type IDer interface {
-	GenerateBookID(ctx context.Context) (uint64, error)
-}
+//type IDer interface {
+//	GenerateBookID(ctx context.Context) (uint64, error)
+//}
 
 type BookSvc struct {
 	bookBorrowRepo BookBorrowRepo
 	bookStockRepo  BookStockRepo
-	ider           IDer
+	ider           *MyIDer
+}
+
+func NewBookSvc(bookBorrowRepo BookBorrowRepo, bookStockRepo BookStockRepo) *BookSvc {
+	return &BookSvc{
+		bookBorrowRepo: bookBorrowRepo,
+		bookStockRepo:  bookStockRepo,
+		ider:           NewMyIDer(),
+	}
 }
 
 func (b *BookSvc) GetStatisticBorrowRecords(ctx context.Context, req controller.QueryStatisticsBorrowRecordsReq) (map[string]int, error) {
@@ -96,7 +105,7 @@ func (b *BookSvc) QueryBookBorrowRecord(ctx context.Context, req controller.Quer
 	return batchToControllerBookBorrowRecord(records), nil
 }
 
-func (b *BookSvc) AddStock(ctx context.Context, req controller.AddStockReq) error {
+func (b *BookSvc) AddStock(ctx context.Context, req controller.AddStockReq, ID *uint64) error {
 	bookID, ok := b.bookStockRepo.CheckBookInfoIfExist(ctx, req.Name, req.Author, req.Publisher, req.Category)
 	if ok {
 		err := b.bookStockRepo.AddBookStock(ctx, bookID, req.QuantityAdded, req.Where)
@@ -104,6 +113,7 @@ func (b *BookSvc) AddStock(ctx context.Context, req controller.AddStockReq) erro
 			logger.LogPrinter.Errorf("add stock[id:%v addedNum:%v where: %v] failed: %v", bookID, req.QuantityAdded, req.Where, err)
 			return errcode.AddBookStockError
 		}
+		*ID = bookID
 		return nil
 	}
 
@@ -117,7 +127,7 @@ func (b *BookSvc) AddStock(ctx context.Context, req controller.AddStockReq) erro
 		logger.LogPrinter.Errorf("generate book id failed: %v", err)
 		return errcode.GenerateBookIDError
 	}
-
+	*ID = bookID
 	bookInfo := BookInfo{
 		Name:      req.Name,
 		Author:    req.Author,
@@ -133,26 +143,34 @@ func (b *BookSvc) AddStock(ctx context.Context, req controller.AddStockReq) erro
 	return nil
 }
 
-func (b *BookSvc) SearchBookStockByID(ctx context.Context, req controller.SearchStockByBookIDReq) (controller.Book, error) {
-	book, err := b.bookStockRepo.SearchBookByID(ctx, req.BookID)
-	if err != nil {
-		return controller.Book{}, errcode.SearchDataError
-	}
-	return controller.Book{
-		BookID:      book.BookID,
-		Name:        book.Info.Name,
-		Author:      book.Info.Author,
-		Publisher:   book.Info.Publisher,
-		Category:    book.Info.Category,
-		Stock:       book.Stock.Stock,
-		StockStatus: book.Stock.Status,
-		StockWhere:  book.Stock.Where,
-		CreatedAt:   convertTimeFormat(book.Stock.AddedTime),
-	}, nil
-}
+//func (b *BookSvc) SearchBookStockByID(ctx context.Context, req controller.SearchStockByBookIDReq) (controller.Book, error) {
+//	book, err := b.bookStockRepo.SearchBookByID(ctx, req.BookID)
+//	if err != nil {
+//		return controller.Book{}, errcode.SearchDataError
+//	}
+//	return controller.Book{
+//		BookID:      book.BookID,
+//		Name:        book.Info.Name,
+//		Author:      book.Info.Author,
+//		Publisher:   book.Info.Publisher,
+//		Category:    book.Info.Category,
+//		Stock:       book.Stock.Stock,
+//		StockStatus: book.Stock.Status,
+//		StockWhere:  book.Stock.Where,
+//		CreatedAt:   convertTimeFormat(book.Stock.AddedTime),
+//	}, nil
+//}
 
 func (b *BookSvc) FuzzyQueryBookStock(ctx context.Context, req controller.FuzzyQueryBookStockReq, totalPage *int) ([]controller.Book, error) {
 	var Opts []func(db *gorm.DB)
+
+	if req.BookID != nil {
+		Opts = append(Opts, func(db *gorm.DB) {
+			db.Where(fmt.Sprintf("%s.id = ?", common.BookTableName), req.BookID)
+		})
+		//如果ID不为空，直接查询
+		goto DB
+	}
 
 	if req.Name != nil {
 		Opts = append(Opts, func(db *gorm.DB) {
@@ -170,21 +188,7 @@ func (b *BookSvc) FuzzyQueryBookStock(ctx context.Context, req controller.FuzzyQ
 		})
 	}
 
-	if req.AddStockTime != nil {
-		t, err := convertStringToTime(*req.AddStockTime)
-		if err != nil {
-			return nil, errcode.ParamError
-		}
-		Opts = append(Opts, func(db *gorm.DB) {
-			db.Where(fmt.Sprintf("%s.updated_at >= ? AND %s.updated_at < ?", common.BookStockTableName, common.BookStockTableName), t, t.Add(24*time.Hour))
-		})
-	}
-	if req.AddStockWhere != nil {
-		Opts = append(Opts, func(db *gorm.DB) {
-			db.Where(fmt.Sprintf("%s.where = ?", common.BookStockTableName), *req.AddStockWhere)
-		})
-	}
-
+DB:
 	books, err := b.bookStockRepo.FuzzyQueryBook(ctx, req.PageSize, req.Page, totalPage, Opts...)
 	if err != nil {
 		return nil, errcode.SearchDataError
@@ -218,42 +222,41 @@ func convertStringToTime(t string) (time.Time, error) {
 	return timeObj, nil
 }
 
-func toControllerBook(book Book) controller.Book {
-	return controller.Book{
-		BookID:      book.BookID,
-		Name:        book.Info.Name,
-		Author:      book.Info.Author,
-		Publisher:   book.Info.Publisher,
-		Category:    book.Info.Category,
-		Stock:       book.Stock.Stock,
-		StockStatus: book.Stock.Status,
-		StockWhere:  book.Stock.Where,
-		CreatedAt:   convertTimeFormat(book.Stock.AddedTime),
-	}
+type MyIDer struct {
+	randPool *rand.Rand
+	mu       sync.Mutex
 }
-func toControllerBookBorrowRecord(record BookBorrowRecord) controller.BookBorrowRecord {
-	return controller.BookBorrowRecord{
-		BookID:           record.BookID,
-		CopyID:           record.CopyID,
-		UserID:           record.BorrowerID,
-		UserName:         record.Borrower,
-		ShouldReturnTime: convertTimeFormat(record.ExpectedTime),
-		ReturnStatus:     record.ReturnStatus,
+
+func NewMyIDer() *MyIDer {
+	return &MyIDer{
+		randPool: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
-func batchToControllerBook(books []Book) []controller.Book {
-	var result []controller.Book
-	for _, book := range books {
-		result = append(result, toControllerBook(book))
-	}
-	return result
-}
+func (i *MyIDer) GenerateBookID(ctx context.Context) (uint64, error) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
 
-func batchToControllerBookBorrowRecord(records []BookBorrowRecord) []controller.BookBorrowRecord {
-	var result []controller.BookBorrowRecord
-	for _, record := range records {
-		result = append(result, toControllerBookBorrowRecord(record))
+	// 使用纳秒时间戳的中间部分，避免高位和低位的不稳定性
+	ts := uint64(time.Now().UnixNano())
+
+	// 取中间15位 (从第5位到第19位)
+	// 这样避免最高位总是1和最低位的随机性不足
+	id := (ts / 1e4) % 1e15
+
+	// 确保在10-15位范围内
+	switch {
+	case id < 1e9: // 小于10位
+		// 组合时间戳后5位和随机10位
+		id = (ts%1e5)*1e10 + i.randPool.Uint64()%1e10
+	case id > 1e15-1: // 超过15位
+		id = uint64(id) % 1e15
 	}
-	return result
+
+	// 最终确保在10-15位
+	if id < 1e9 {
+		id += 1e9
+	}
+
+	return id, nil
 }

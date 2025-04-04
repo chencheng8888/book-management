@@ -4,7 +4,7 @@ package controller
 
 type BorrowBookReq struct {
 	BookID             uint64 `json:"book_id" binding:"required"`              // 书本ID【这个你可以理解为一类书，比如《高等数学》】
-	BorrowerID         string `json:"borrower_id" binding:"required"`          // 借阅者ID
+	BorrowerID         uint64 `json:"borrower_id" binding:"required"`          // 借阅者ID
 	ExpectedReturnTime string `json:"expected_return_time" binding:"required"` // 预计归还时间,格式为"2006-01-02"
 }
 
@@ -20,7 +20,7 @@ type BorrowBookResp struct {
 type BookBorrowRecord struct {
 	BookID           uint64 `json:"book_id" binding:"required"`            // 书本ID【这个你可以理解为一类书，比如《高等数学》】
 	CopyID           uint64 `json:"copy_id" binding:"required"`            // 副本ID	【这个你可以理解为具体一本书，比如《高等数学》的第一本
-	UserID           string `json:"user_id" binding:"required"`            //用户ID
+	UserID           uint64 `json:"user_id" binding:"required"`            //用户ID
 	UserName         string `json:"user_name" binding:"required"`          //用户名
 	ShouldReturnTime string `json:"should_return_time" binding:"required"` //应该归还的时间
 	ReturnStatus     string `json:"return_status" binding:"required"`      //归还状态

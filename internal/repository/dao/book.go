@@ -16,6 +16,13 @@ type BookDao struct {
 	fixedPoints int
 }
 
+func NewBookDao(db *gorm.DB) *BookDao {
+	return &BookDao{
+		db:          db,
+		fixedPoints: 100,
+	}
+}
+
 func (b *BookDao) GetBookBorrowStatistics(ctx context.Context, startTime, endTime time.Time) (do.BorrowStatistics, error) {
 	db := b.db.WithContext(ctx).Table(common.BookBorrowTableName)
 	type tmp struct {
@@ -69,7 +76,7 @@ func (b *BookDao) UpdateBorrowStatus(ctx context.Context, bookID, copyID uint64,
 	return err
 }
 
-func (b *BookDao) AddBookBorrowRecord(ctx context.Context, bookID uint64, borrowerID string, expectedReturnTime time.Time, copyID *uint64) error {
+func (b *BookDao) AddBookBorrowRecord(ctx context.Context, bookID uint64, borrowerID uint64, expectedReturnTime time.Time, copyID *uint64) error {
 	var copy_id uint64
 	err := b.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		//先检查用户是否存在
@@ -165,6 +172,10 @@ func (b *BookDao) AddBookStock(ctx context.Context, id uint64, num uint, where *
 				return err
 			}
 		}
+		//添加copy
+		if err := createBookCopy(ctx, tx, id, num); err != nil {
+			return err
+		}
 		return nil
 	})
 	if err != nil {
@@ -176,8 +187,8 @@ func (b *BookDao) AddBookStock(ctx context.Context, id uint64, num uint, where *
 func (b *BookDao) RegisterAndAddBookStock(ctx context.Context, bookInfo do.BookInfo, addedNum uint, where string) error {
 	createdTime := time.Now()
 	err := b.db.Transaction(func(tx *gorm.DB) error {
-		err := createBookInfo(ctx, tx, bookInfo)
-		if err != nil {
+
+		if err := createBookInfo(ctx, tx, bookInfo); err != nil {
 			return err
 		}
 
@@ -185,14 +196,17 @@ func (b *BookDao) RegisterAndAddBookStock(ctx context.Context, bookInfo do.BookI
 			return errors.New("book stock unexpectedly exist")
 		}
 
-		err = createBookStock(ctx, tx, do.BookStock{
+		if err := createBookStock(ctx, tx, do.BookStock{
 			BookID:    bookInfo.ID,
 			Stock:     addedNum,
 			Where:     where,
 			CreatedAt: createdTime,
 			UpdatedAt: createdTime,
-		})
-		if err != nil {
+		}); err != nil {
+			return err
+		}
+		//添加copy
+		if err := createBookCopy(ctx, tx, bookInfo.ID, addedNum); err != nil {
 			return err
 		}
 		return nil
@@ -292,9 +306,9 @@ func updateStockWhere(ctx context.Context, db *gorm.DB, id uint64, where string)
 	if res.Error != nil {
 		return res.Error
 	}
-	if res.RowsAffected == 0 {
-		return errors.New("no data updated")
-	}
+	//if res.RowsAffected == 0 {
+	//	return errors.New("no data updated")
+	//}
 	return nil
 }
 
@@ -304,6 +318,20 @@ func createBookInfo(ctx context.Context, db *gorm.DB, bookInfo do.BookInfo) erro
 
 func createBookStock(ctx context.Context, db *gorm.DB, bookStock do.BookStock) error {
 	return db.WithContext(ctx).Debug().Create(&bookStock).Error
+}
+
+func createBookCopy(ctx context.Context, db *gorm.DB, bookID uint64, num uint) error {
+	for i := uint(0); i < num; i++ {
+		err := db.WithContext(ctx).Debug().Table(common.BookCopyTableName).
+			Create(&do.BookCopy{
+				BookID: bookID,
+				Status: true,
+			}).Error
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func getBookInfoByID(ctx context.Context, db *gorm.DB, ids ...uint64) ([]do.BookInfo, error) {

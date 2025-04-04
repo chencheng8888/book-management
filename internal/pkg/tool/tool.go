@@ -2,6 +2,7 @@ package tool
 
 import (
 	"book-management/internal/pkg/common"
+	"math"
 	"time"
 )
 
@@ -71,4 +72,8 @@ func GetMonthStartTime(endTime time.Time) (startTime time.Time) {
 
 func GetYearStartTime(endTime time.Time) (startTime time.Time) {
 	return time.Date(endTime.Year(), 1, 1, startTime.Hour(), startTime.Minute(), startTime.Second(), startTime.Nanosecond(), endTime.Location())
+}
+
+func GetPage(num int, pageSize int) int {
+	return int(math.Ceil(float64(num) / float64(pageSize)))
 }

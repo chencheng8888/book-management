@@ -33,6 +33,13 @@
                 "summary": "借书",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "鉴权",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
                         "description": "借书请求",
                         "name": "object",
                         "in": "body",
@@ -66,6 +73,13 @@
                 ],
                 "summary": "查询借书记录",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "鉴权",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "description": "第几页",
@@ -113,6 +127,13 @@
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "鉴权",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
                         "description": "示例值 \"week\" \"month\" \"year\"",
                         "name": "pattern",
                         "in": "query",
@@ -143,6 +164,13 @@
                 ],
                 "summary": "更新借阅状态",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "鉴权",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "description": "更新请求",
                         "name": "object",
@@ -177,6 +205,13 @@
                 ],
                 "summary": "添加库存",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "鉴权",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "description": "增加库存请求",
                         "name": "object",
@@ -213,20 +248,21 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "入库时间",
-                        "name": "add_stock_time",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "入库地点",
-                        "name": "add_stock_where",
-                        "in": "query"
+                        "description": "鉴权",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
                     },
                     {
                         "type": "string",
                         "description": "作者",
                         "name": "author",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "书本ID",
+                        "name": "book_id",
                         "in": "query"
                     },
                     {
@@ -265,38 +301,6 @@
                     }
                 }
             }
-        },
-        "/api/v1/book/stock/searchByID": {
-            "get": {
-                "description": "根据ID查询库存信息",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "库存"
-                ],
-                "summary": "根据ID查询库存信息",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "书本ID",
-                        "name": "book_id",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/controller.SearchStockByBookIDResp"
-                        }
-                    }
-                }
-            }
         }
     },
     "definitions": {
@@ -315,7 +319,7 @@
                     "type": "string"
                 },
                 "category": {
-                    "description": "类别",
+                    "description": "类别,目前有[children_story,science_knowledge,art_enlightenment]",
                     "type": "string"
                 },
                 "name": {
@@ -444,7 +448,7 @@
                 },
                 "user_id": {
                     "description": "用户ID",
-                    "type": "string"
+                    "type": "integer"
                 },
                 "user_name": {
                     "description": "用户名",
@@ -466,7 +470,7 @@
                 },
                 "borrower_id": {
                     "description": "借阅者ID",
-                    "type": "string"
+                    "type": "integer"
                 },
                 "expected_return_time": {
                     "description": "预计归还时间,格式为\"2006-01-02\"",
@@ -549,6 +553,62 @@
                 }
             }
         },
+        "controller.GenerateCaptchaResp": {
+            "type": "object",
+            "required": [
+                "code",
+                "msg"
+            ],
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "object",
+                    "required": [
+                        "image",
+                        "verification_code_id"
+                    ],
+                    "properties": {
+                        "image": {
+                            "type": "string"
+                        },
+                        "verification_code_id": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "controller.LoginResp": {
+            "type": "object",
+            "required": [
+                "code",
+                "msg"
+            ],
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "object",
+                    "required": [
+                        "token"
+                    ],
+                    "properties": {
+                        "token": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
         "controller.QueryBookBorrowRecordResp": {
             "type": "object",
             "required": [
@@ -623,7 +683,7 @@
                 }
             }
         },
-        "controller.SearchStockByBookIDResp": {
+        "controller.SearchUserResp": {
             "type": "object",
             "required": [
                 "code",
@@ -635,12 +695,26 @@
                     "type": "integer"
                 },
                 "data": {
-                    "description": "数据",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/controller.Book"
+                    "type": "object",
+                    "required": [
+                        "current_page",
+                        "total_page",
+                        "users"
+                    ],
+                    "properties": {
+                        "current_page": {
+                            "type": "integer"
+                        },
+                        "total_page": {
+                            "type": "integer"
+                        },
+                        "users": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/controller.User"
+                            }
                         }
-                    ]
+                    }
                 },
                 "msg": {
                     "type": "string"
@@ -682,6 +756,52 @@
                 },
                 "data": {},
                 "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "controller.User": {
+            "type": "object",
+            "required": [
+                "gender",
+                "id",
+                "integral",
+                "is_vip",
+                "name",
+                "phone",
+                "status"
+            ],
+            "properties": {
+                "gender": {
+                    "description": "性别",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "用户ID",
+                    "type": "integer"
+                },
+                "integral": {
+                    "description": "积分",
+                    "type": "integer"
+                },
+                "is_vip": {
+                    "description": "是否是会员",
+                    "type": "boolean"
+                },
+                "name": {
+                    "description": "姓名",
+                    "type": "string"
+                },
+                "phone": {
+                    "description": "手机号",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "用户状态",
+                    "type": "string"
+                },
+                "vip_levels": {
+                    "description": "会员等级",
                     "type": "string"
                 }
             }

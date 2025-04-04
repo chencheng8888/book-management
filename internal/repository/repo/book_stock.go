@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type BookDao interface {
+type BookStockDao interface {
 	// 新增书籍库存
 	AddBookStock(ctx context.Context, id uint64, num uint, where *string) error
 	// 注册并新增书籍库存
@@ -40,8 +40,15 @@ type BookCache interface {
 }
 
 type BookStockRepo struct {
-	bookDao   BookDao
+	bookDao   BookStockDao
 	bookCache BookCache
+}
+
+func NewBookStockRepo(bookDao BookStockDao, bookCache BookCache) *BookStockRepo {
+	return &BookStockRepo{
+		bookDao:   bookDao,
+		bookCache: bookCache,
+	}
 }
 
 func (b *BookStockRepo) CheckBookInfoIfExist(ctx context.Context, name, author, publisher, category string) (uint64, bool) {
@@ -108,14 +115,14 @@ func (b *BookStockRepo) SearchBookByID(ctx context.Context, id uint64) (service.
 }
 
 func (b *BookStockRepo) FuzzyQueryBook(ctx context.Context, pageSize int, currentPage int, totalPage *int, opts ...func(db *gorm.DB)) ([]service.Book, error) {
-	num, err := b.bookDao.GetBookTotalNum(ctx)
+	num, err := b.bookDao.GetBookTotalNum(ctx, opts...)
 	if err != nil {
 		return nil, err
 	}
 
 	pageNum := int(math.Ceil(float64(num) / float64(pageSize)))
 
-	totalPage = &pageNum
+	*totalPage = pageNum
 
 	if currentPage > pageNum {
 		return nil, nil
