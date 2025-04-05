@@ -11,9 +11,9 @@ var ProviderSet = wire.NewSet(
 	NewUserSvc)
 
 var (
-	WeekPattern  = "week_pattern"
-	MonthPattern = "month_pattern"
-	YearPattern  = "year_pattern"
+	WeekPattern  = "week"
+	MonthPattern = "month"
+	YearPattern  = "year"
 )
 
 func getStartAndEndTime(pattern string) (startTime, endTime time.Time) {

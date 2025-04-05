@@ -3,7 +3,7 @@ package controller
 //Resp主要是为了帮助生成接口文档
 
 type BorrowBookReq struct {
-	BookID             uint64 `json:"book_id" binding:"required"`              // 书本ID【这个你可以理解为一类书，比如《高等数学》】
+	BookID             uint64 `json:"book_id"  binding:"required"`             // 书本ID【这个你可以理解为一类书，比如《高等数学》】
 	BorrowerID         uint64 `json:"borrower_id" binding:"required"`          // 借阅者ID
 	ExpectedReturnTime string `json:"expected_return_time" binding:"required"` // 预计归还时间,格式为"2006-01-02"
 }
@@ -27,7 +27,7 @@ type BookBorrowRecord struct {
 }
 
 type QueryBookBorrowRecordReq struct {
-	QueryStatus *string `json:"query_status"`                                  //借阅状态的查询条件
+	QueryStatus *string `json:"query_status" form:"query_status"`              //借阅状态的查询条件
 	Page        int     `json:"page" form:"page" binding:"required"`           //第几页
 	PageSize    int     `json:"page_size" form:"page_size" binding:"required"` //每页大小
 }
@@ -55,7 +55,7 @@ type UpdateBorrowStatusResp struct {
 }
 
 type QueryStatisticsBorrowRecordsReq struct {
-	Pattern string `json:"pattern" binding:"required"` //示例值 "week" "month" "year"
+	Pattern string `json:"pattern" form:"pattern" binding:"required"` //示例值 "week" "month" "year"
 }
 
 type QueryStatisticsBorrowRecordsResp struct {

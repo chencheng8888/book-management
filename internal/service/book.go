@@ -93,8 +93,15 @@ func (b *BookSvc) QueryBookBorrowRecord(ctx context.Context, req controller.Quer
 			return nil, errcode.ParamError
 		}
 	}
-
-	records, err := b.bookBorrowRepo.QueryBookRecord(ctx, req.PageSize, req.Page, totalPage, opt)
+	var (
+		records []BookBorrowRecord
+		err     error
+	)
+	if opt == nil {
+		records, err = b.bookBorrowRepo.QueryBookRecord(ctx, req.PageSize, req.Page, totalPage)
+	} else {
+		records, err = b.bookBorrowRepo.QueryBookRecord(ctx, req.PageSize, req.Page, totalPage, opt)
+	}
 	if err != nil {
 		return nil, errcode.SearchDataError
 	}

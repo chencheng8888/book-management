@@ -102,7 +102,7 @@ func (b *BookDao) AddBookBorrowRecord(ctx context.Context, bookID uint64, borrow
 		if res.RowsAffected == 0 {
 			return errors.New("no excess inventory")
 		}
-		copyID = &copy_id
+		*copyID = copy_id
 		//更新书籍借阅状态
 		err = updateCopyStatus(ctx, tx, bookID, copy_id, false)
 		if err != nil {
