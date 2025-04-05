@@ -1,6 +1,9 @@
 # 第一阶段：构建阶段 - 使用官方 Go 镜像构建应用
 FROM golang:1.23-alpine AS builder
 
+# 设置国内 Go 模块代理
+RUN go env -w GOPROXY=https://goproxy.cn,direct
+
 # 设置工作目录
 WORKDIR /book_management
 
