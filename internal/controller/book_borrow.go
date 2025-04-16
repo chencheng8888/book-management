@@ -2,15 +2,17 @@ package controller
 
 import (
 	"book-management/internal/pkg/common"
+	"book-management/internal/pkg/errcode"
 	"book-management/internal/pkg/req"
 	"book-management/internal/pkg/resp"
+	"book-management/internal/pkg/tool"
 	"context"
 	"github.com/gin-gonic/gin"
 )
 
 type BookBorrowSvc interface {
 	AddBorrowBookRecord(ctx context.Context, req BorrowBookReq) (bookID uint64, copyID uint64, err error)
-	QueryBookBorrowRecord(ctx context.Context, req QueryBookBorrowRecordReq, totalPage *int) ([]BookBorrowRecord, error)
+	QueryBookBorrowRecord(ctx context.Context, req QueryBookBorrowRecordReq, total *int) ([]BookBorrowRecord, error)
 	UpdateBorrowStatus(ctx context.Context, req UpdateBorrowStatusReq) error
 	GetStatisticBorrowRecords(ctx context.Context, req QueryStatisticsBorrowRecordsReq) (map[string]int, error)
 }
@@ -85,12 +87,19 @@ func (b *BookBorrowCtrl) QueryBookBorrowRecord(c *gin.Context) {
 		return
 	}
 
-	if queryBookBorrowRecordReq.QueryStatus != nil && *queryBookBorrowRecordReq.QueryStatus == "" {
-		queryBookBorrowRecordReq.QueryStatus = nil
+	if queryBookBorrowRecordReq.QueryStatus != nil {
+		if *queryBookBorrowRecordReq.QueryStatus == "" {
+			queryBookBorrowRecordReq.QueryStatus = nil
+		} else {
+			if !tool.CheckBorrowStatus(*queryBookBorrowRecordReq.QueryStatus) {
+				resp.SendResp(c, resp.NewRespFromErr(errcode.ParamError))
+				return
+			}
+		}
 	}
 
-	var totalPage int
-	records, err := b.borrowSvc.QueryBookBorrowRecord(c, queryBookBorrowRecordReq, &totalPage)
+	var totalNum int
+	records, err := b.borrowSvc.QueryBookBorrowRecord(c, queryBookBorrowRecordReq, &totalNum)
 	if err != nil {
 		resp.SendResp(c, resp.NewRespFromErr(err))
 		return
@@ -99,7 +108,8 @@ func (b *BookBorrowCtrl) QueryBookBorrowRecord(c *gin.Context) {
 	resp.SendResp(c, resp.WithData(resp.SuccessResp, map[string]interface{}{
 		"borrow_records": records,
 		"current_page":   queryBookBorrowRecordReq.Page,
-		"total_page":     totalPage,
+		"total_page":     tool.GetPage(totalNum, queryBookBorrowRecordReq.PageSize),
+		"total_num":      totalNum,
 	}))
 }
 
@@ -119,6 +129,11 @@ func (b *BookBorrowCtrl) UpdateBorrowStatus(c *gin.Context) {
 		resp.SendResp(c, resp.NewRespFromErr(err))
 		return
 	}
+	if !tool.CheckBorrowStatus(updatereq.Status) {
+		resp.SendResp(c, resp.NewRespFromErr(errcode.ParamError))
+		return
+	}
+
 	if err := b.borrowSvc.UpdateBorrowStatus(c, updatereq); err != nil {
 		resp.SendResp(c, resp.NewRespFromErr(err))
 		return
@@ -140,6 +155,12 @@ func (b *BookBorrowCtrl) QueryStatisticsBorrowRecords(c *gin.Context) {
 	var statisticsBorrowRecordsReq QueryStatisticsBorrowRecordsReq
 	if err := req.ParseRequestQuery(c, &statisticsBorrowRecordsReq); err != nil {
 		resp.SendResp(c, resp.NewRespFromErr(err))
+		return
+	}
+	switch statisticsBorrowRecordsReq.Pattern {
+	case "week", "month", "year":
+	default:
+		resp.SendResp(c, resp.NewRespFromErr(errcode.ParamError))
 		return
 	}
 	result, err := b.borrowSvc.GetStatisticBorrowRecords(c, statisticsBorrowRecordsReq)

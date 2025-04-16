@@ -27,5 +27,6 @@ const (
 	BookCopyTableName   = "book_copy"
 	BookBorrowTableName = "book_borrow"
 
-	UserTableName = "users"
+	DonateTableName = "donate"
+	UserTableName   = "users"
 )

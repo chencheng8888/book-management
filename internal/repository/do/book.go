@@ -1,10 +1,12 @@
 package do
 
 import (
-	"book-management/internal/pkg/common"
 	"fmt"
-	"gorm.io/gorm"
 	"time"
+
+	"gorm.io/gorm"
+
+	"book-management/internal/pkg/common"
 )
 
 // 绘本信息
@@ -28,7 +30,7 @@ type BookStock struct {
 	BookID uint64 `gorm:"primaryKey;column:book_id"`
 	Stock  uint   `gorm:"column:stock"`
 	//Status    string    `gorm:"column:status"`
-	Where     string    `gorm:"type:varchar(255);column:where"`
+	// Where     string    `gorm:"type:varchar(255);column:where"`
 	CreatedAt time.Time `gorm:"column:created_at"`
 	UpdatedAt time.Time `gorm:"column:updated_at"`
 }
@@ -51,6 +53,7 @@ type BookCopy struct {
 	BookID uint64 `gorm:"column:book_id;uniqueIndex:idx_book_copy"` // 书籍ID[相当于标记某一种书，比如《高等数学》]
 	CopyID uint64 `gorm:"column:copy_id;uniqueIndex:idx_book_copy"` // 副本ID [这个相当于标识特定的某一本书，比如《高等数学》的第一本]
 	Status bool   `gorm:"column:status"`                            // 是否在库中
+	Donate bool   `gorm:"column:donate"`                            //是否捐赠
 }
 
 func (b *BookCopy) BeforeCreate(tx *gorm.DB) (err error) {

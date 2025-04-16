@@ -3,12 +3,14 @@ package dao
 import (
 	"book-management/internal/pkg/common"
 	"book-management/internal/repository/do"
+	"book-management/internal/repository/repo"
 	"book-management/pkg/logger"
 	"context"
 	"errors"
 	"fmt"
-	"gorm.io/gorm"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type BookDao struct {
@@ -22,7 +24,41 @@ func NewBookDao(db *gorm.DB) *BookDao {
 		fixedPoints: 100,
 	}
 }
+func (b *BookDao) GetBookDonateRecordsNum(ctx context.Context) (int, error) {
+	db := b.db.WithContext(ctx).Table(common.DonateTableName)
+	var cnt int64
+	err := db.Count(&cnt).Error
+	if err != nil {
+		return 0, err
+	}
+	return int(cnt), nil
+}
 
+func (b *BookDao) GetBookDonateInfos(ctx context.Context, pageSize int, page int) ([]do.DonateInfo, error) {
+	db := b.db.WithContext(ctx).Table(common.DonateTableName)
+	var donateInfos []do.DonateInfo
+	err := db.Debug().Limit(pageSize).Offset((page - 1) * pageSize).Order("created_at DESC").Find(&donateInfos).Error
+	if err != nil {
+		return nil, err
+	}
+	return donateInfos, nil
+}
+
+func (b *BookDao) GetDonateRanking(ctx context.Context, top int) ([]repo.DonateRanking, error) {
+	db := b.db.WithContext(ctx).Table(common.DonateTableName)
+	var donateRanking []repo.DonateRanking
+	err := db.Debug().Select(fmt.Sprintf("%s.user_id,%s.name as user_name,sum(%s.num) as donate_num,count(*) as donate_times,MAX(%s.updated_at) as updated_at",
+		common.DonateTableName, common.UserTableName, common.DonateTableName, common.DonateTableName)).
+		Joins(fmt.Sprintf("left join %s on %s.user_id = %s.id", common.UserTableName, common.DonateTableName, common.UserTableName)).
+		Group(fmt.Sprintf("%s.user_id, %s.name",
+			common.DonateTableName, common.UserTableName)).
+		Order("donate_num DESC").Limit(top).Find(&donateRanking).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return donateRanking, nil
+}
 func (b *BookDao) GetBookBorrowStatistics(ctx context.Context, startTime, endTime time.Time) (do.BorrowStatistics, error) {
 	db := b.db.WithContext(ctx).Table(common.BookBorrowTableName)
 	type tmp struct {
@@ -159,32 +195,35 @@ func (b *BookDao) CheckBookIfExist(ctx context.Context, name, author, publisher,
 	return checkBookIfExist(ctx, b.db, name, author, publisher, category)
 }
 
-func (b *BookDao) AddBookStock(ctx context.Context, id uint64, num uint, where *string) error {
+func (b *BookDao) AddBookStock(ctx context.Context, bookID, userID uint64, num uint, donate bool) error {
 	err := b.db.Transaction(func(tx *gorm.DB) error {
-		if !checkBookStockIfExistByID(ctx, tx, id) {
+		if !checkBookStockIfExistByID(ctx, tx, bookID) {
 			return errors.New("book stock is not exist")
 		}
-		if err := addStock(ctx, tx, id, num); err != nil {
+		if err := addStock(ctx, tx, bookID, num); err != nil {
 			return err
 		}
-		if where != nil {
-			if err := updateStockWhere(ctx, tx, id, *where); err != nil {
+		//添加copy
+		if err := createBookCopy(ctx, tx, bookID, num, donate); err != nil {
+			return err
+		}
+
+		//创建捐赠记录
+		if donate {
+			if err := createDonateRecord(ctx, tx, bookID, userID, int(num)); err != nil {
 				return err
 			}
 		}
-		//添加copy
-		if err := createBookCopy(ctx, tx, id, num); err != nil {
-			return err
-		}
+
 		return nil
 	})
 	if err != nil {
-		logger.LogPrinter.Errorf("DB:Add Book Stock [id:%v num:%v where:%v] failed, err: %v", id, num, where, err)
+		logger.LogPrinter.Errorf("DB:Add Book Stock [id:%v num:%v] failed, err: %v", bookID, num, err)
 	}
 	return err
 }
 
-func (b *BookDao) RegisterAndAddBookStock(ctx context.Context, bookInfo do.BookInfo, addedNum uint, where string) error {
+func (b *BookDao) RegisterAndAddBookStock(ctx context.Context, bookInfo do.BookInfo, userID uint64, addedNum uint, donate bool) error {
 	createdTime := time.Now()
 	err := b.db.Transaction(func(tx *gorm.DB) error {
 
@@ -199,20 +238,25 @@ func (b *BookDao) RegisterAndAddBookStock(ctx context.Context, bookInfo do.BookI
 		if err := createBookStock(ctx, tx, do.BookStock{
 			BookID:    bookInfo.ID,
 			Stock:     addedNum,
-			Where:     where,
 			CreatedAt: createdTime,
 			UpdatedAt: createdTime,
 		}); err != nil {
 			return err
 		}
 		//添加copy
-		if err := createBookCopy(ctx, tx, bookInfo.ID, addedNum); err != nil {
+		if err := createBookCopy(ctx, tx, bookInfo.ID, addedNum, donate); err != nil {
 			return err
+		}
+		//创建捐赠记录
+		if donate {
+			if err := createDonateRecord(ctx, tx, bookInfo.ID, userID, int(addedNum)); err != nil {
+				return err
+			}
 		}
 		return nil
 	})
 	if err != nil {
-		logger.LogPrinter.Errorf("DB:Register And Add Book Stock [bookInfo:%v addedNum:%v where:%v] failed, err: %v", bookInfo, addedNum, where, err)
+		logger.LogPrinter.Errorf("DB:Register And Add Book Stock [bookInfo:%v addedNum:%v] failed, err: %v", bookInfo, addedNum, err)
 	}
 	return err
 }
@@ -233,10 +277,8 @@ func (b *BookDao) GetBookStockByID(ctx context.Context, id ...uint64) ([]do.Book
 
 func (b *BookDao) FuzzyQueryBookID(ctx context.Context, pageSize int, page int, opts ...func(db *gorm.DB)) ([]uint64, error) {
 
-	// 基础查询：联表查询
 	db := b.db.WithContext(ctx).Table(common.BookTableName).
-		Joins(fmt.Sprintf("LEFT JOIN %s ON %s.id = %s.book_id", common.BookStockTableName, common.BookTableName, common.BookStockTableName)).
-		Select("DISTINCT id") // 确保ID唯一
+		Select("DISTINCT id")
 
 	for _, opt := range opts {
 		opt(db)
@@ -244,9 +286,14 @@ func (b *BookDao) FuzzyQueryBookID(ctx context.Context, pageSize int, page int, 
 
 	var ids []uint64
 
+	offset := (page - 1) * pageSize
+
 	err := db.Debug().
-		Where("id >= (?)", db.Order("id ASC").Offset((page-1)*pageSize).Limit(1)).
-		Order("id ASC").Limit(pageSize).Find(&ids).Error
+		Order("id ASC").
+		Limit(pageSize).
+		Offset(offset).
+		Find(&ids).Error
+
 	if err != nil {
 		return nil, err
 	}
@@ -258,7 +305,6 @@ func (b *BookDao) GetBookTotalNum(ctx context.Context, opts ...func(db *gorm.DB)
 
 	// 基础查询：联表查询
 	db := b.db.WithContext(ctx).Table(common.BookTableName).
-		Joins(fmt.Sprintf("LEFT JOIN %s ON %s.id = %s.book_id", common.BookStockTableName, common.BookTableName, common.BookStockTableName)).
 		Select("DISTINCT id") // 确保ID唯一
 
 	for _, opt := range opts {
@@ -320,12 +366,13 @@ func createBookStock(ctx context.Context, db *gorm.DB, bookStock do.BookStock) e
 	return db.WithContext(ctx).Debug().Create(&bookStock).Error
 }
 
-func createBookCopy(ctx context.Context, db *gorm.DB, bookID uint64, num uint) error {
+func createBookCopy(ctx context.Context, db *gorm.DB, bookID uint64, num uint, donate bool) error {
 	for i := uint(0); i < num; i++ {
 		err := db.WithContext(ctx).Debug().Table(common.BookCopyTableName).
 			Create(&do.BookCopy{
 				BookID: bookID,
 				Status: true,
+				Donate: donate,
 			}).Error
 		if err != nil {
 			return err
@@ -336,10 +383,13 @@ func createBookCopy(ctx context.Context, db *gorm.DB, bookID uint64, num uint) e
 
 func getBookInfoByID(ctx context.Context, db *gorm.DB, ids ...uint64) ([]do.BookInfo, error) {
 	var infos []do.BookInfo
-	err := db.WithContext(ctx).Debug().Table(common.BookTableName).
-		Where("id in (?)", ids).Find(&infos).Error
-	if err != nil {
-		return nil, err
+	res := db.WithContext(ctx).Debug().Table(common.BookTableName).
+		Where("id in (?)", ids).Find(&infos)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	if res.RowsAffected != int64(len(ids)) {
+		return nil, errors.New("some datas don't found")
 	}
 	return infos, nil
 }
@@ -388,4 +438,13 @@ func updateBorrowRecordReturnTime(ctx context.Context, db *gorm.DB, bookID, copy
 		return errors.New("no data updated")
 	}
 	return nil
+}
+
+func createDonateRecord(ctx context.Context, db *gorm.DB, bookID, userID uint64, num int) error {
+	donateInfo := do.DonateInfo{
+		BookID: bookID,
+		UserID: userID,
+		Num:    num,
+	}
+	return db.WithContext(ctx).Debug().Create(&donateInfo).Error
 }

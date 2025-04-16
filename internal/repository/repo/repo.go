@@ -7,4 +7,5 @@ import (
 var ProviderSet = wire.NewSet(
 	NewBookStockRepo,
 	NewBookBorrowRepo,
+	NewBookDonateRepo,
 	NewUserRepo)

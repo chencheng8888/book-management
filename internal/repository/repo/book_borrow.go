@@ -93,9 +93,8 @@ func (b *BookBorrowRepo) QueryBookRecord(ctx context.Context, pageSize int, curr
 		return nil, err
 	}
 
-	*totalPage = tool.GetPage(num, pageSize)
-
-	if currentPage > *totalPage {
+	*totalPage = num
+	if maxPage := tool.GetPage(num, pageSize); currentPage > maxPage {
 		return nil, errcode.PageError
 	}
 

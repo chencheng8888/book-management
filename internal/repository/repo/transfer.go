@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"book-management/internal/pkg/tool"
 	"book-management/internal/repository/do"
 	"book-management/internal/service"
 )
@@ -17,7 +18,6 @@ func toServiceBook(id uint64, bookInfo do.BookInfo, bookStock do.BookStock) serv
 		Stock: service.BookStock{
 			Stock:     bookStock.Stock,
 			Status:    getStockStatus(bookStock),
-			Where:     bookStock.Where,
 			AddedTime: bookStock.UpdatedAt,
 		},
 	}
@@ -74,6 +74,21 @@ func batchToServiceUser(users []do.User) []service.User {
 	var res = make([]service.User, 0, len(users))
 	for _, user := range users {
 		res = append(res, toServiceUser(user))
+	}
+	return res
+}
+
+func batchToServiceBookDonateRecord(infos []do.DonateInfo, user map[uint64]string, phone map[uint64]string, bookname map[uint64]string) []service.BookDonateRecord {
+	var res = make([]service.BookDonateRecord, 0, len(infos))
+	for _, info := range infos {
+		var record service.BookDonateRecord
+		record.UserID = info.UserID
+		record.UserName = user[info.UserID]
+		record.Phone = phone[info.UserID]
+		record.BookName = bookname[info.BookID]
+		record.DonateNum = info.Num
+		record.DonateTime = tool.ConvertTimeFormat(info.UpdatedAt)
+		res = append(res, record)
 	}
 	return res
 }

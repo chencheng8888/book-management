@@ -23,7 +23,7 @@ type BookBorrowRecord struct {
 	UserID           uint64 `json:"user_id" binding:"required"`            //用户ID
 	UserName         string `json:"user_name" binding:"required"`          //用户名
 	ShouldReturnTime string `json:"should_return_time" binding:"required"` //应该归还的时间
-	ReturnStatus     string `json:"return_status" binding:"required"`      //归还状态
+	ReturnStatus     string `json:"return_status" binding:"required"`      //归还状态,有三种[waiting_return,returned,overdue]
 }
 
 type QueryBookBorrowRecordReq struct {
@@ -38,7 +38,8 @@ type QueryBookBorrowRecordResp struct {
 	Data struct {
 		BorrowRecords []BookBorrowRecord `json:"borrow_records" binding:"required"`
 		CurrentPage   int                `json:"current_page" binding:"required"` //当前页
-		TotalPage     int                `json:"total_page" binding:"required"`   //总数
+		TotalPage     int                `json:"total_page" binding:"required"`   //总页数
+		TotalNum      int                `json:"total_num" binding:"required"`    //总数量
 	} `json:"data" binding:"required"`
 }
 

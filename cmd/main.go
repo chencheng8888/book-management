@@ -1,11 +1,12 @@
 package main
 
 import (
-	"book-management/configs"
-	"book-management/pkg/logger"
 	"flag"
 
 	"github.com/gin-gonic/gin"
+
+	"book-management/configs"
+	"book-management/pkg/logger"
 )
 
 var (

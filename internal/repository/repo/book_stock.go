@@ -2,22 +2,26 @@ package repo
 
 import (
 	"book-management/internal/pkg/common"
+	"book-management/internal/pkg/errcode"
+	"book-management/internal/pkg/tool"
 	"book-management/internal/repository/do"
 	"book-management/internal/service"
 	"context"
-	"math"
 	"time"
 
 	"gorm.io/gorm"
 )
 
-type BookStockDao interface {
-	// 新增书籍库存
-	AddBookStock(ctx context.Context, id uint64, num uint, where *string) error
-	// 注册并新增书籍库存
-	RegisterAndAddBookStock(ctx context.Context, bookInfo do.BookInfo, addedNum uint, where string) error
+type BookInfoDao interface {
 	// 根据ID获取书籍信息
 	GetBookInfoByID(ctx context.Context, id ...uint64) ([]do.BookInfo, error)
+}
+
+type BookStockDao interface {
+	// 新增书籍库存
+	AddBookStock(ctx context.Context, bookID, userID uint64, num uint, donate bool) error
+	// 注册并新增书籍库存
+	RegisterAndAddBookStock(ctx context.Context, bookInfo do.BookInfo, userID uint64, addedNum uint, donate bool) error
 	// 根据ID获取书籍库存
 	GetBookStockByID(ctx context.Context, id ...uint64) ([]do.BookStock, error)
 	// 检查书本是否存在
@@ -41,12 +45,14 @@ type BookCache interface {
 
 type BookStockRepo struct {
 	bookDao   BookStockDao
+	infoDao   BookInfoDao
 	bookCache BookCache
 }
 
-func NewBookStockRepo(bookDao BookStockDao, bookCache BookCache) *BookStockRepo {
+func NewBookStockRepo(bookDao BookStockDao, infoDao BookInfoDao, bookCache BookCache) *BookStockRepo {
 	return &BookStockRepo{
 		bookDao:   bookDao,
+		infoDao:   infoDao,
 		bookCache: bookCache,
 	}
 }
@@ -55,8 +61,8 @@ func (b *BookStockRepo) CheckBookInfoIfExist(ctx context.Context, name, author, 
 	return b.bookDao.CheckBookIfExist(ctx, name, author, publisher, category)
 }
 
-func (b *BookStockRepo) AddBookStock(ctx context.Context, id uint64, num uint, where *string) error {
-	err := b.bookCache.DeleteBookStock(ctx, id)
+func (b *BookStockRepo) AddBookStock(ctx context.Context, bookID uint64, userID *uint64, num uint) error {
+	err := b.bookCache.DeleteBookStock(ctx, bookID)
 	if err != nil {
 		return err
 	}
@@ -64,18 +70,28 @@ func (b *BookStockRepo) AddBookStock(ctx context.Context, id uint64, num uint, w
 	//异步删除缓存
 	defer func() {
 		go time.AfterFunc(time.Second, func() {
-			_ = b.bookCache.DeleteBookStock(ctx, id)
+			_ = b.bookCache.DeleteBookStock(ctx, bookID)
 		})
 	}()
-	return b.bookDao.AddBookStock(ctx, id, num, where)
+	var donate bool
+
+	var user uint64
+	if userID != nil {
+		donate = true
+		user = *userID
+	} else {
+		donate = false
+	}
+
+	return b.bookDao.AddBookStock(ctx, bookID, user, num, donate)
 }
 
-func (b *BookStockRepo) RegisterBookAndAddBookStock(ctx context.Context, id uint64, book service.BookInfo, num uint, where string) error {
+func (b *BookStockRepo) RegisterBookAndAddBookStock(ctx context.Context, bookID uint64, userID *uint64, book service.BookInfo, num uint) error {
 	clean := func(ctx context.Context) error {
-		if err := b.bookCache.DeleteBookInfo(ctx, id); err != nil {
+		if err := b.bookCache.DeleteBookInfo(ctx, bookID); err != nil {
 			return err
 		}
-		if err := b.bookCache.DeleteBookStock(ctx, id); err != nil {
+		if err := b.bookCache.DeleteBookStock(ctx, bookID); err != nil {
 			return err
 		}
 
@@ -94,38 +110,35 @@ func (b *BookStockRepo) RegisterBookAndAddBookStock(ctx context.Context, id uint
 
 	currentTime := time.Now()
 
+	var donate bool
+
+	var user uint64
+	if userID != nil {
+		donate = true
+		user = *userID
+	} else {
+		donate = false
+	}
+
 	return b.bookDao.RegisterAndAddBookStock(ctx, do.BookInfo{
-		ID:        id,
+		ID:        bookID,
 		Name:      book.Name,
 		Author:    book.Author,
 		Publisher: book.Publisher,
 		Category:  book.Category,
 		CreatedAt: currentTime,
 		UpdatedAt: currentTime,
-	}, num, where)
+	}, user, num, donate)
 }
 
-func (b *BookStockRepo) SearchBookByID(ctx context.Context, id uint64) (service.Book, error) {
-	bookInfos, bookStocks, err := b.getBookInID(ctx, id)
-	if err != nil {
-		return service.Book{}, err
-	}
-
-	return toServiceBook(id, bookInfos[0], bookStocks[0]), nil
-}
-
-func (b *BookStockRepo) FuzzyQueryBook(ctx context.Context, pageSize int, currentPage int, totalPage *int, opts ...func(db *gorm.DB)) ([]service.Book, error) {
+func (b *BookStockRepo) FuzzyQueryBook(ctx context.Context, pageSize int, currentPage int, totalNum *int, opts ...func(db *gorm.DB)) ([]service.Book, error) {
 	num, err := b.bookDao.GetBookTotalNum(ctx, opts...)
 	if err != nil {
 		return nil, err
 	}
-
-	pageNum := int(math.Ceil(float64(num) / float64(pageSize)))
-
-	*totalPage = pageNum
-
-	if currentPage > pageNum {
-		return nil, nil
+	*totalNum = num
+	if maxPage := tool.GetPage(num, pageSize); currentPage > maxPage {
+		return nil, errcode.PageError
 	}
 
 	ids, err := b.bookDao.FuzzyQueryBookID(ctx, pageSize, currentPage, opts...)
@@ -144,7 +157,7 @@ func (b *BookStockRepo) getBookInID(ctx context.Context, ids ...uint64) ([]do.Bo
 	bookInfos, leftID := b.bookCache.GetBookInfoByID(ctx, ids...)
 
 	if len(leftID) > 0 {
-		tmpBookInfos, err := b.bookDao.GetBookInfoByID(ctx, leftID...)
+		tmpBookInfos, err := b.infoDao.GetBookInfoByID(ctx, leftID...)
 		if err != nil || len(tmpBookInfos) != len(leftID) {
 			return nil, nil, err
 		}

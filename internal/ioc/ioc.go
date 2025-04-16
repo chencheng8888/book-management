@@ -4,6 +4,7 @@ import (
 	"book-management/configs"
 	"book-management/internal/repository/do"
 	"context"
+
 	"github.com/google/wire"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
@@ -18,7 +19,7 @@ func NewGormDB(conf configs.AppConfig) (*gorm.DB, error) {
 		return nil, err
 	}
 	err = db.AutoMigrate(&do.User{}, &do.BookInfo{}, &do.BookStock{},
-		&do.BookBorrow{}, &do.BookCopy{})
+		&do.BookBorrow{}, &do.BookCopy{}, &do.DonateInfo{})
 	if err != nil {
 		return nil, err
 	}

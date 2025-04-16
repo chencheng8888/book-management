@@ -15,6 +15,14 @@ func CheckCategory(category string) bool {
 	}
 }
 
+func CheckBorrowStatus(status string) bool {
+	switch status {
+	case common.BookStatusWaitingReturn, common.BookStatusReturned, common.BookStatusOverdue:
+		return true
+	}
+	return false
+}
+
 const (
 	Format1 = "2006-01-02 15:04:05"
 	Format2 = "2006-01-02"
@@ -76,4 +84,20 @@ func GetYearStartTime(endTime time.Time) (startTime time.Time) {
 
 func GetPage(num int, pageSize int) int {
 	return int(math.Ceil(float64(num) / float64(pageSize)))
+}
+
+func Unique[T comparable](slice []T) []T {
+	keys := make(map[T]bool)
+	var list []T
+	for _, entry := range slice {
+		if _, value := keys[entry]; !value {
+			keys[entry] = true
+			list = append(list, entry)
+		}
+	}
+	return list
+}
+
+func ConvertTimeFormat(t time.Time) string {
+	return t.Format("2006-01-02")
 }

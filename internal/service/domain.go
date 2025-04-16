@@ -2,6 +2,7 @@ package service
 
 import (
 	"book-management/internal/controller"
+	"book-management/internal/pkg/tool"
 	"time"
 )
 
@@ -17,7 +18,6 @@ type BookStock struct {
 	//BookID    uint64    `json:"book_id"`    // 书本ID
 	Stock     uint      `json:"stock"`      //库存
 	Status    string    `json:"status"`     //库存状态
-	Where     string    `json:"where"`      //库存位置
 	AddedTime time.Time `json:"added_time"` //入库时间
 }
 type Book struct {
@@ -36,6 +36,13 @@ type BookBorrowRecord struct {
 	ReturnStatus string    `json:"return_status"` // 归还状态
 }
 
+type BookDonateRecord struct {
+	controller.DonateRecords
+}
+type Rank struct {
+	controller.Rank
+}
+
 type User struct {
 	controller.User
 }
@@ -49,8 +56,7 @@ func toControllerBook(book Book) controller.Book {
 		Category:    book.Info.Category,
 		Stock:       book.Stock.Stock,
 		StockStatus: book.Stock.Status,
-		StockWhere:  book.Stock.Where,
-		CreatedAt:   convertTimeFormat(book.Stock.AddedTime),
+		CreatedAt:   tool.ConvertTimeFormat(book.Stock.AddedTime),
 	}
 }
 func toControllerBookBorrowRecord(record BookBorrowRecord) controller.BookBorrowRecord {
@@ -59,7 +65,7 @@ func toControllerBookBorrowRecord(record BookBorrowRecord) controller.BookBorrow
 		CopyID:           record.CopyID,
 		UserID:           record.BorrowerID,
 		UserName:         record.Borrower,
-		ShouldReturnTime: convertTimeFormat(record.ExpectedTime),
+		ShouldReturnTime: tool.ConvertTimeFormat(record.ExpectedTime),
 		ReturnStatus:     record.ReturnStatus,
 	}
 }
@@ -67,7 +73,8 @@ func toControllerBookBorrowRecord(record BookBorrowRecord) controller.BookBorrow
 func batchToControllerBook(books []Book) []controller.Book {
 	var result []controller.Book
 	for _, book := range books {
-		result = append(result, toControllerBook(book))
+		ctrlBook := toControllerBook(book)
+		result = append(result, ctrlBook)
 	}
 	return result
 }
@@ -84,6 +91,22 @@ func batchToControllerUser(users []User) []controller.User {
 	var result = make([]controller.User, 0, len(users))
 	for _, user := range users {
 		result = append(result, user.User)
+	}
+	return result
+}
+
+func batchToControllerBookDonateRecord(records []BookDonateRecord) []controller.DonateRecords {
+	var result = make([]controller.DonateRecords, 0, len(records))
+	for _, record := range records {
+		result = append(result, record.DonateRecords)
+	}
+	return result
+}
+
+func batchToControllerRank(ranks []Rank) []controller.Rank {
+	var result = make([]controller.Rank, 0, len(ranks))
+	for _, rank := range ranks {
+		result = append(result, rank.Rank)
 	}
 	return result
 }

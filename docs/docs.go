@@ -197,9 +197,93 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/book/donate/get_ranking": {
+            "get": {
+                "description": "获取捐赠排名",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "捐赠"
+                ],
+                "summary": "获取捐赠排名",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "鉴权",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "name": "top",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controller.GetDonationRankingResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/book/donate/list": {
+            "get": {
+                "description": "列出捐赠记录",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "捐赠"
+                ],
+                "summary": "列出捐赠记录",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "鉴权",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "当前页",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页大小",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controller.ListDonateRecordsResp"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/book/stock/add": {
             "post": {
-                "description": "添加库存接口，参数的where是可选参数",
+                "description": "添加库存接口",
                 "consumes": [
                     "application/json"
                 ],
@@ -340,9 +424,9 @@ const docTemplate = `{
                     "description": "添加的库存数目",
                     "type": "integer"
                 },
-                "where": {
-                    "description": "库存位置",
-                    "type": "string"
+                "user_id": {
+                    "description": "user_id字段不为空是则为捐献接口",
+                    "type": "integer"
                 }
             }
         },
@@ -383,8 +467,7 @@ const docTemplate = `{
                 "name",
                 "publisher",
                 "stock",
-                "stock_status",
-                "stock_where"
+                "stock_status"
             ],
             "properties": {
                 "author": {
@@ -418,10 +501,6 @@ const docTemplate = `{
                 "stock_status": {
                     "description": "库存状态",
                     "type": "string"
-                },
-                "stock_where": {
-                    "description": "库存位置",
-                    "type": "string"
                 }
             }
         },
@@ -445,7 +524,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "return_status": {
-                    "description": "归还状态",
+                    "description": "归还状态,有三种[waiting_return,returned,overdue]",
                     "type": "string"
                 },
                 "should_return_time": {
@@ -517,6 +596,43 @@ const docTemplate = `{
                 }
             }
         },
+        "controller.DonateRecords": {
+            "type": "object",
+            "required": [
+                "book_name",
+                "donate_num",
+                "donate_time",
+                "phone",
+                "user_id",
+                "user_name"
+            ],
+            "properties": {
+                "book_name": {
+                    "description": "书籍名称",
+                    "type": "string"
+                },
+                "donate_num": {
+                    "description": "捐赠数目",
+                    "type": "integer"
+                },
+                "donate_time": {
+                    "description": "捐赠时间",
+                    "type": "string"
+                },
+                "phone": {
+                    "description": "电话",
+                    "type": "string"
+                },
+                "user_id": {
+                    "description": "用户ID",
+                    "type": "integer"
+                },
+                "user_name": {
+                    "description": "用户名称",
+                    "type": "string"
+                }
+            }
+        },
         "controller.FuzzyQueryBookStockResp": {
             "type": "object",
             "required": [
@@ -534,6 +650,7 @@ const docTemplate = `{
                     "required": [
                         "books",
                         "current_page",
+                        "total_num",
                         "total_page"
                     ],
                     "properties": {
@@ -548,8 +665,12 @@ const docTemplate = `{
                             "description": "当前页",
                             "type": "integer"
                         },
+                        "total_num": {
+                            "description": "总数量",
+                            "type": "integer"
+                        },
                         "total_page": {
-                            "description": "总数",
+                            "description": "总页数",
                             "type": "integer"
                         }
                     }
@@ -581,6 +702,78 @@ const docTemplate = `{
                         },
                         "verification_code_id": {
                             "type": "string"
+                        }
+                    }
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "controller.GetDonationRankingResp": {
+            "type": "object",
+            "required": [
+                "code",
+                "data"
+            ],
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "object",
+                    "required": [
+                        "rankings"
+                    ],
+                    "properties": {
+                        "rankings": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/controller.Rank"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "controller.ListDonateRecordsResp": {
+            "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "object",
+                    "required": [
+                        "current_page",
+                        "donate_records",
+                        "total_num",
+                        "total_page"
+                    ],
+                    "properties": {
+                        "current_page": {
+                            "description": "当前页",
+                            "type": "integer"
+                        },
+                        "donate_records": {
+                            "description": "捐赠记录",
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/controller.DonateRecords"
+                            }
+                        },
+                        "total_num": {
+                            "description": "总数量",
+                            "type": "integer"
+                        },
+                        "total_page": {
+                            "description": "总页数",
+                            "type": "integer"
                         }
                     }
                 },
@@ -631,6 +824,7 @@ const docTemplate = `{
                     "required": [
                         "borrow_records",
                         "current_page",
+                        "total_num",
                         "total_page"
                     ],
                     "properties": {
@@ -644,8 +838,12 @@ const docTemplate = `{
                             "description": "当前页",
                             "type": "integer"
                         },
+                        "total_num": {
+                            "description": "总数量",
+                            "type": "integer"
+                        },
                         "total_page": {
-                            "description": "总数",
+                            "description": "总页数",
                             "type": "integer"
                         }
                     }
@@ -685,6 +883,38 @@ const docTemplate = `{
                     }
                 },
                 "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "controller.Rank": {
+            "type": "object",
+            "required": [
+                "donate_num",
+                "donate_times",
+                "updated_at",
+                "user_id",
+                "user_name"
+            ],
+            "properties": {
+                "donate_num": {
+                    "description": "捐赠数目",
+                    "type": "integer"
+                },
+                "donate_times": {
+                    "description": "捐赠次数",
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "description": "最近捐赠时间",
+                    "type": "string"
+                },
+                "user_id": {
+                    "description": "用户ID",
+                    "type": "integer"
+                },
+                "user_name": {
+                    "description": "用户名称",
                     "type": "string"
                 }
             }

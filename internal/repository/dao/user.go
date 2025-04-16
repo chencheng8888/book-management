@@ -18,6 +18,25 @@ func NewUserDao(db *gorm.DB) *UserDao {
 	}
 }
 
+func (u *UserDao) GetUserPhone(ctx context.Context, id ...uint64) (map[uint64]string, error) {
+
+	db := u.db.WithContext(ctx).Table(common.UserTableName)
+
+	var res []struct {
+		ID    uint64 `gorm:"column:id"`
+		Phone string `gorm:"column:phone"`
+	}
+	err := db.Debug().Select("id, phone").Where("id in (?)", id).Find(&res).Error
+	if err != nil {
+		return nil, err
+	}
+	var mp = make(map[uint64]string, len(res))
+	for _, v := range res {
+		mp[v.ID] = v.Phone
+	}
+	return mp, nil
+}
+
 func (u *UserDao) SearchUserID(ctx context.Context, currentPage, pageSize int, opts ...func(db *gorm.DB)) ([]do.User, error) {
 	if currentPage <= 0 {
 		currentPage = 1

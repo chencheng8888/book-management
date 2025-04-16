@@ -23,8 +23,8 @@ func NewMyMiddleware(verifyToken VerifyToken) *MyMiddleware {
 
 func NewMiddlewares(m *MyMiddleware) []route.MiddleWare {
 	var middlewares = []route.MiddleWare{
-		route.MiddleWare(AuthMiddleware(m)),
 		route.MiddleWare(Cors()),
+		route.MiddleWare(AuthMiddleware(m)),
 	}
 	return middlewares
 }
@@ -65,6 +65,7 @@ func Cors() gin.HandlerFunc {
 		}
 		if method == "OPTIONS" {
 			c.AbortWithStatus(http.StatusNoContent)
+			return
 		}
 		c.Next()
 	}

@@ -6,6 +6,7 @@ import (
 	"book-management/internal/pkg/resp"
 	"book-management/internal/pkg/tool"
 	"context"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -36,7 +37,7 @@ func (b *BookStockCtrl) RegisterRoute(r *gin.Engine) {
 
 // AddStock 添加库存
 // @Summary 添加库存
-// @Description 添加库存接口，参数的where是可选参数
+// @Description 添加库存接口
 // @Tags 库存
 // @Accept application/json
 // @Produce application/json
@@ -57,6 +58,10 @@ func (b *BookStockCtrl) AddStock(c *gin.Context) {
 		return
 	}
 
+	if addStockReq.UserID != nil && *addStockReq.UserID == 0 {
+		addStockReq.UserID = nil
+	}
+
 	//执行
 	var bookID uint64
 	if err := b.stockSvc.AddStock(c, addStockReq, &bookID); err != nil {
@@ -68,31 +73,6 @@ func (b *BookStockCtrl) AddStock(c *gin.Context) {
 		"book_id": bookID,
 	}))
 }
-
-//// SearchStockByBookID 精确查询库存信息
-//// @Summary 根据ID查询库存信息
-//// @Description 根据ID查询库存信息
-//// @Tags 库存
-//// @Accept application/json
-//// @Produce application/json
-//// @Param object query SearchStockByBookIDReq true "查询请求"
-//// @Success 200 {object} SearchStockByBookIDResp
-//// @Router /api/v1/book/stock/searchByID [get]
-//func (b *BookStockCtrl) SearchStockByBookID(c *gin.Context) {
-//	var searchByBookIDReq SearchStockByBookIDReq
-//	if err := req.ParseRequestQuery(c, &searchByBookIDReq); err != nil {
-//		resp.SendResp(c, resp.NewRespFromErr(err))
-//		return
-//	}
-//
-//	book, err := b.stockSvc.SearchBookStockByID(c, searchByBookIDReq)
-//	if err != nil {
-//		resp.SendResp(c, resp.NewRespFromErr(err))
-//		return
-//	}
-//
-//	resp.SendResp(c, resp.WithData(resp.SuccessResp, book))
-//}
 
 // FuzzyQueryBookStock 模糊查询库存信息
 // @Summary 模糊查询库存信息
@@ -124,14 +104,16 @@ func (b *BookStockCtrl) FuzzyQueryBookStock(c *gin.Context) {
 		fuzzyQueryBookStockReq.Author = nil
 	}
 
-	if fuzzyQueryBookStockReq.Category != nil && tool.CheckCategory(*fuzzyQueryBookStockReq.Category) {
-		resp.SendResp(c, resp.NewRespFromErr(errcode.ParamError))
-		return
+	if fuzzyQueryBookStockReq.Category != nil {
+		if !tool.CheckCategory(*fuzzyQueryBookStockReq.Category) {
+			resp.SendResp(c, resp.NewRespFromErr(errcode.ParamError))
+			return
+		}
 	}
 
-	var totalPage int
+	var totalNum int
 
-	books, err := b.stockSvc.FuzzyQueryBookStock(c, fuzzyQueryBookStockReq, &totalPage)
+	books, err := b.stockSvc.FuzzyQueryBookStock(c, fuzzyQueryBookStockReq, &totalNum)
 	if err != nil {
 		resp.SendResp(c, resp.NewRespFromErr(err))
 		return
@@ -139,34 +121,7 @@ func (b *BookStockCtrl) FuzzyQueryBookStock(c *gin.Context) {
 	resp.SendResp(c, resp.WithData(resp.SuccessResp, map[string]interface{}{
 		"books":        books,
 		"current_page": fuzzyQueryBookStockReq.Page,
-		"total_page":   totalPage,
+		"total_page":   tool.GetPage(totalNum, fuzzyQueryBookStockReq.PageSize),
+		"total_num":    totalNum,
 	}))
 }
-
-//// ListBookStock 列出所有库存信息
-//// @Summary 列出所有库存信息
-//// @Description 列出所有库存信息
-//// @Tags 库存
-//// @Accept application/json
-//// @Produce application/json
-//// @Param object query ListBookStockReq true "查询请求"
-//// @Success 200 {object} ListBookStockResp
-//// @Router /api/v1/book/stock/list [get]
-//func (b *BookStockCtrl) ListBookStock(c *gin.Context) {
-//	var listBookStockReq ListBookStockReq
-//	if err := req.ParseRequestBody(c, &listBookStockReq); err != nil {
-//		resp.SendResp(c, resp.NewRespFromErr(err))
-//		return
-//	}
-//	var totalPage int
-//	books, err := b.stockSvc.ListBookStock(c, listBookStockReq, &totalPage)
-//	if err != nil {
-//		resp.SendResp(c, resp.NewRespFromErr(err))
-//		return
-//	}
-//	resp.SendResp(c, resp.WithData(resp.SuccessResp, map[string]interface{}{
-//		"books":        books,
-//		"current_page": listBookStockReq.page,
-//		"total_page":   totalPage,
-//	}))
-//}

@@ -17,9 +17,9 @@ definitions:
       quantity_added:
         description: 添加的库存数目
         type: integer
-      where:
-        description: 库存位置
-        type: string
+      user_id:
+        description: user_id字段不为空是则为捐献接口
+        type: integer
     required:
     - author
     - category
@@ -71,9 +71,6 @@ definitions:
       stock_status:
         description: 库存状态
         type: string
-      stock_where:
-        description: 库存位置
-        type: string
     required:
     - author
     - book_id
@@ -83,7 +80,6 @@ definitions:
     - publisher
     - stock
     - stock_status
-    - stock_where
     type: object
   controller.BookBorrowRecord:
     properties:
@@ -94,7 +90,7 @@ definitions:
         description: "副本ID\t【这个你可以理解为具体一本书，比如《高等数学》的第一本"
         type: integer
       return_status:
-        description: 归还状态
+        description: 归还状态,有三种[waiting_return,returned,overdue]
         type: string
       should_return_time:
         description: 应该归还的时间
@@ -152,6 +148,34 @@ definitions:
     - data
     - msg
     type: object
+  controller.DonateRecords:
+    properties:
+      book_name:
+        description: 书籍名称
+        type: string
+      donate_num:
+        description: 捐赠数目
+        type: integer
+      donate_time:
+        description: 捐赠时间
+        type: string
+      phone:
+        description: 电话
+        type: string
+      user_id:
+        description: 用户ID
+        type: integer
+      user_name:
+        description: 用户名称
+        type: string
+    required:
+    - book_name
+    - donate_num
+    - donate_time
+    - phone
+    - user_id
+    - user_name
+    type: object
   controller.FuzzyQueryBookStockResp:
     properties:
       code:
@@ -167,12 +191,16 @@ definitions:
           current_page:
             description: 当前页
             type: integer
+          total_num:
+            description: 总数量
+            type: integer
           total_page:
-            description: 总数
+            description: 总页数
             type: integer
         required:
         - books
         - current_page
+        - total_num
         - total_page
         type: object
       msg:
@@ -200,6 +228,56 @@ definitions:
         type: string
     required:
     - code
+    - msg
+    type: object
+  controller.GetDonationRankingResp:
+    properties:
+      code:
+        type: integer
+      data:
+        properties:
+          rankings:
+            items:
+              $ref: '#/definitions/controller.Rank'
+            type: array
+        required:
+        - rankings
+        type: object
+    required:
+    - code
+    - data
+    type: object
+  controller.ListDonateRecordsResp:
+    properties:
+      code:
+        type: integer
+      data:
+        properties:
+          current_page:
+            description: 当前页
+            type: integer
+          donate_records:
+            description: 捐赠记录
+            items:
+              $ref: '#/definitions/controller.DonateRecords'
+            type: array
+          total_num:
+            description: 总数量
+            type: integer
+          total_page:
+            description: 总页数
+            type: integer
+        required:
+        - current_page
+        - donate_records
+        - total_num
+        - total_page
+        type: object
+      msg:
+        type: string
+    required:
+    - code
+    - data
     - msg
     type: object
   controller.LoginResp:
@@ -232,12 +310,16 @@ definitions:
           current_page:
             description: 当前页
             type: integer
+          total_num:
+            description: 总数量
+            type: integer
           total_page:
-            description: 总数
+            description: 总页数
             type: integer
         required:
         - borrow_records
         - current_page
+        - total_num
         - total_page
         type: object
       msg:
@@ -269,6 +351,30 @@ definitions:
     required:
     - code
     - msg
+    type: object
+  controller.Rank:
+    properties:
+      donate_num:
+        description: 捐赠数目
+        type: integer
+      donate_times:
+        description: 捐赠次数
+        type: integer
+      updated_at:
+        description: 最近捐赠时间
+        type: string
+      user_id:
+        description: 用户ID
+        type: integer
+      user_name:
+        description: 用户名称
+        type: string
+    required:
+    - donate_num
+    - donate_times
+    - updated_at
+    - user_id
+    - user_name
     type: object
   controller.SearchUserResp:
     properties:
@@ -488,11 +594,67 @@ paths:
       summary: 更新借阅状态
       tags:
       - 借书
+  /api/v1/book/donate/get_ranking:
+    get:
+      consumes:
+      - application/json
+      description: 获取捐赠排名
+      parameters:
+      - description: 鉴权
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - in: query
+        name: top
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.GetDonationRankingResp'
+      summary: 获取捐赠排名
+      tags:
+      - 捐赠
+  /api/v1/book/donate/list:
+    get:
+      consumes:
+      - application/json
+      description: 列出捐赠记录
+      parameters:
+      - description: 鉴权
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 当前页
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: 每页大小
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.ListDonateRecordsResp'
+      summary: 列出捐赠记录
+      tags:
+      - 捐赠
   /api/v1/book/stock/add:
     post:
       consumes:
       - application/json
-      description: 添加库存接口，参数的where是可选参数
+      description: 添加库存接口
       parameters:
       - description: 鉴权
         in: header
