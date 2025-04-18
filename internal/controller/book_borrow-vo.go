@@ -6,6 +6,7 @@ type BorrowBookReq struct {
 	BookID             uint64 `json:"book_id"  binding:"required"`             // 书本ID【这个你可以理解为一类书，比如《高等数学》】
 	BorrowerID         uint64 `json:"borrower_id" binding:"required"`          // 借阅者ID
 	ExpectedReturnTime string `json:"expected_return_time" binding:"required"` // 预计归还时间,格式为"2006-01-02"
+	CopyID             uint64 `json:"copy_id" binding:"required"`              //具体某本书的ID
 }
 
 type BorrowBookResp struct {
@@ -66,5 +67,19 @@ type QueryStatisticsBorrowRecordsResp struct {
 		ChildrenStoryNum    int `json:"children_story_num" binding:"required"`
 		ScienceKnowledgeNum int `json:"science_knowledge_num" binding:"required"`
 		ArtEnlightenmentNum int `json:"art_enlightenment_num" binding:"required"`
-	}
+	} `json:"data" binding:"required"`
+}
+
+type GetAvailableCopyBookReq struct {
+	BookID   uint64 `form:"book_id" binding:"required"`
+	Page     int    `form:"page" binding:"required"`
+	PageSize int    `form:"page_size" binding:"required"`
+}
+
+type GetAvailableCopyBookResp struct {
+	Code int    `json:"code" binding:"required"`
+	Msg  string `json:"msg" binding:"required"`
+	Data struct {
+		CopyIds []uint64 `json:"copy_ids" binding:"required"`
+	} `json:"data" binding:"required"`
 }

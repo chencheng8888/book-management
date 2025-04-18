@@ -37,6 +37,7 @@ func (u *UserCtrl) RegisterRoute(r *gin.Engine) {
 // @Param Authorization header string true "鉴权"
 // @Param object query SearchUserReq true "请求参数"
 // @Success 200 {object} SearchUserResp "查询成功"
+// @Router /api/v1/user/search [get]
 func (u *UserCtrl) SearchUser(c *gin.Context) {
 	var searchUserReq SearchUserReq
 	if err := req.ParseRequestQuery(c, &searchUserReq); err != nil {

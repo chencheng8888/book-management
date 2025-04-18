@@ -24,6 +24,9 @@ FROM alpine
 # 安装必要的依赖（如你的应用需要）
 # RUN apk --no-cache add ca-certificates
 
+# 安装 tzdata 提供时区信息
+RUN apk --no-cache add tzdata
+
 # 从构建阶段复制编译好的二进制文件
 COPY --from=builder /book_management/app /book_management/app
 

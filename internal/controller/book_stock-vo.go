@@ -25,9 +25,9 @@ type Book struct {
 	Name        string `json:"name" binding:"required"`          //书本名称
 	Author      string `json:"author" binding:"required"`        // 作者
 	Publisher   string `json:"publisher" binding:"required"`     //出版社
-	Category    string `json:"category" binding:"required"`      //类别
+	Category    string `json:"category" binding:"required"`      //类别,目前有[children_story,science_knowledge,art_enlightenment]
 	Stock       uint   `json:"stock" binding:"required"`         //库存数量
-	StockStatus string `json:"stock_status"  binding:"required"` //库存状态
+	StockStatus string `json:"stock_status"  binding:"required"` //库存状态,有三种[adequate,early_warning,shortage]
 	CreatedAt   string `json:"created_at" binding:"required"`    //入库时间
 }
 

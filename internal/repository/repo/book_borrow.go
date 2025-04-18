@@ -15,7 +15,7 @@ import (
 
 type BookBorrowDao interface {
 	// 新增借阅记录
-	AddBookBorrowRecord(ctx context.Context, bookID uint64, borrowerID uint64, expectedReturnTime time.Time, copyID *uint64) error
+	AddBookBorrowRecord(ctx context.Context, bookID uint64, borrowerID uint64, expectedReturnTime time.Time, copyID uint64) error
 	// 获取书本借阅记录总数
 	GetBookRecordTotalNum(ctx context.Context, opt ...func(db *gorm.DB)) (int, error)
 	// 模糊查询借阅记录
@@ -24,6 +24,7 @@ type BookBorrowDao interface {
 	UpdateBorrowStatus(ctx context.Context, bookID, copyID uint64, status string) error
 	//查询书籍借阅记录的统计数据
 	GetBookBorrowStatistics(ctx context.Context, startTime, endTime time.Time) (do.BorrowStatistics, error)
+	GetAvailableBookCopy(ctx context.Context, bookID uint64, page, pageSize int) ([]uint64, error)
 }
 
 type BookBorrowCache interface {
@@ -47,6 +48,10 @@ func NewBookBorrowRepo(bookBorrowDao BookBorrowDao, bookBorrowCache BookBorrowCa
 		userDao:         userDao,
 		locker:          locker.NewLocker(),
 	}
+}
+
+func (b *BookBorrowRepo) GetAvailableCopyBook(ctx context.Context, bookID uint64, page, pageSize int) ([]uint64, error) {
+	return b.bookBorrowDao.GetAvailableBookCopy(ctx, bookID, page, pageSize)
 }
 
 func (b *BookBorrowRepo) GetBookStatisticsBorrow(ctx context.Context, pattern string, startTime, endTime time.Time) (map[string]int, error) {
@@ -115,6 +120,6 @@ func (b *BookBorrowRepo) QueryBookRecord(ctx context.Context, pageSize int, curr
 	return batchToServiceBookRecord(borrow, mp), nil
 }
 
-func (b *BookBorrowRepo) AddBookBorrowRecord(ctx context.Context, bookID uint64, borrowerID uint64, expectedReturnTime time.Time, copyID *uint64) error {
+func (b *BookBorrowRepo) AddBookBorrowRecord(ctx context.Context, bookID uint64, borrowerID uint64, expectedReturnTime time.Time, copyID uint64) error {
 	return b.bookBorrowDao.AddBookBorrowRecord(ctx, bookID, borrowerID, expectedReturnTime, copyID)
 }

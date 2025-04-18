@@ -6,12 +6,12 @@ import (
 	"book-management/internal/pkg/errcode"
 	"book-management/pkg/logger"
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"sync"
 	"time"
 
-	"github.com/go-kratos/kratos/v2/errors"
 	"gorm.io/gorm"
 )
 
@@ -24,9 +24,10 @@ type BookStockRepo interface {
 
 type BookBorrowRepo interface {
 	QueryBookRecord(ctx context.Context, pageSize int, currentPage int, total *int, opts ...func(db *gorm.DB)) ([]BookBorrowRecord, error)
-	AddBookBorrowRecord(ctx context.Context, bookID uint64, borrowerID uint64, expectedReturnTime time.Time, copyID *uint64) error
+	AddBookBorrowRecord(ctx context.Context, bookID uint64, borrowerID uint64, expectedReturnTime time.Time, copyID uint64) error
 	UpdateBorrowStatus(ctx context.Context, bookID uint64, copyID uint64, status string) error
 	GetBookStatisticsBorrow(ctx context.Context, pattern string, startTime time.Time, endTime time.Time) (map[string]int, error)
+	GetAvailableCopyBook(ctx context.Context, bookID uint64, page, pageSize int) ([]uint64, error)
 }
 
 type BookDonateRepo interface {
@@ -88,10 +89,17 @@ func (b *BookSvc) UpdateBorrowStatus(ctx context.Context, req controller.UpdateB
 
 func (b *BookSvc) AddBorrowBookRecord(ctx context.Context, req controller.BorrowBookReq) (uint64, uint64, error) {
 	expectedTime, err := convertStringToTime(req.ExpectedReturnTime)
+	if err != nil {
+		logger.LogPrinter.Errorf("parse time str[%v] failed:%v", req.ExpectedReturnTime, err)
+		return 0, 0, err
+	}
 
-	var copyID uint64
-
-	err = b.bookBorrowRepo.AddBookBorrowRecord(ctx, req.BookID, req.BorrowerID, expectedTime, &copyID)
+	if expectedTime.Before(time.Now()) {
+		logger.LogPrinter.Infof("expected return time[%v] is  before timw.Now", expectedTime)
+		return 0, 0, errors.New("expected return time is illegal")
+	}
+	copyID := req.CopyID
+	err = b.bookBorrowRepo.AddBookBorrowRecord(ctx, req.BookID, req.BorrowerID, expectedTime, copyID)
 	if errors.Is(err, errcode.InsufficientBookStock) {
 		return req.BookID, copyID, err
 	}
@@ -99,6 +107,10 @@ func (b *BookSvc) AddBorrowBookRecord(ctx context.Context, req controller.Borrow
 		return req.BookID, copyID, errcode.AddBookBorrowError
 	}
 	return req.BookID, copyID, nil
+}
+
+func (b *BookSvc) GetAvailableCopyBook(ctx context.Context, req controller.GetAvailableCopyBookReq) ([]uint64, error) {
+	return b.bookBorrowRepo.GetAvailableCopyBook(ctx, req.BookID, req.Page, req.PageSize)
 }
 
 func (b *BookSvc) QueryBookBorrowRecord(ctx context.Context, req controller.QueryBookBorrowRecordReq, totalNum *int) ([]controller.BookBorrowRecord, error) {

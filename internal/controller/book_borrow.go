@@ -15,6 +15,7 @@ type BookBorrowSvc interface {
 	QueryBookBorrowRecord(ctx context.Context, req QueryBookBorrowRecordReq, total *int) ([]BookBorrowRecord, error)
 	UpdateBorrowStatus(ctx context.Context, req UpdateBorrowStatusReq) error
 	GetStatisticBorrowRecords(ctx context.Context, req QueryStatisticsBorrowRecordsReq) (map[string]int, error)
+	GetAvailableCopyBook(ctx context.Context, req GetAvailableCopyBookReq) ([]uint64, error)
 }
 
 type BookBorrowCtrl struct {
@@ -35,6 +36,32 @@ func (b *BookBorrowCtrl) RegisterRoute(r *gin.Engine) {
 		g.PUT("/update_status", b.UpdateBorrowStatus)
 		g.GET("/query_statistics", b.QueryStatisticsBorrowRecords)
 	}
+}
+
+// GetAvailableCopyBook 获取可借用的书籍
+// @Summary 获取可借用的书籍
+// @Description 获取可借用的书籍,当返回的数量等于page_size+1时，则代表还有下一页，否则，没有
+// @Tags 借书
+// @Accept application/json
+// @Produce application/json
+// @Param Authorization header string true "鉴权"
+// @Param object query GetAvailableCopyBookReq true "请求"
+// @Success 200 {object} GetAvailableCopyBookResp
+// @Router /api/v1/book/borrow/get_available [get]
+func (b *BookBorrowCtrl) GetAvailableCopyBook(c *gin.Context) {
+	var getAvailableCopyBookReq GetAvailableCopyBookReq
+	if err := req.ParseRequestBody(c, &getAvailableCopyBookReq); err != nil {
+		resp.SendResp(c, resp.NewRespFromErr(err))
+		return
+	}
+	copyIds, err := b.borrowSvc.GetAvailableCopyBook(c, getAvailableCopyBookReq)
+	if err != nil {
+		resp.SendResp(c, resp.NewRespFromErr(err))
+		return
+	}
+	resp.SendResp(c, resp.WithData(resp.SuccessResp, map[string]interface{}{
+		"copy_ids": copyIds,
+	}))
 }
 
 // BorrowBook 借书

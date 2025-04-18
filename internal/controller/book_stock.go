@@ -6,6 +6,7 @@ import (
 	"book-management/internal/pkg/resp"
 	"book-management/internal/pkg/tool"
 	"context"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 )
@@ -60,6 +61,11 @@ func (b *BookStockCtrl) AddStock(c *gin.Context) {
 
 	if addStockReq.UserID != nil && *addStockReq.UserID == 0 {
 		addStockReq.UserID = nil
+	}
+
+	if addStockReq.QuantityAdded > 200 {
+		resp.SendResp(c, resp.NewRespFromErr(fmt.Errorf("%v: add num is too big", errcode.ParamError)))
+		return
 	}
 
 	//执行

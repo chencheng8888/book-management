@@ -65,6 +65,56 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/book/borrow/get_available": {
+            "get": {
+                "description": "获取可借用的书籍,当返回的数量等于page_size+1时，则代表还有下一页，否则，没有",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "借书"
+                ],
+                "summary": "获取可借用的书籍",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "鉴权",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "name": "book_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controller.GetAvailableCopyBookResp"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/book/borrow/query": {
             "get": {
                 "description": "查询借书记录",
@@ -479,7 +529,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "category": {
-                    "description": "类别",
+                    "description": "类别,目前有[children_story,science_knowledge,art_enlightenment]",
                     "type": "string"
                 },
                 "created_at": {
@@ -499,7 +549,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "stock_status": {
-                    "description": "库存状态",
+                    "description": "库存状态,有三种[adequate,early_warning,shortage]",
                     "type": "string"
                 }
             }
@@ -546,6 +596,7 @@ const docTemplate = `{
             "required": [
                 "book_id",
                 "borrower_id",
+                "copy_id",
                 "expected_return_time"
             ],
             "properties": {
@@ -555,6 +606,10 @@ const docTemplate = `{
                 },
                 "borrower_id": {
                     "description": "借阅者ID",
+                    "type": "integer"
+                },
+                "copy_id": {
+                    "description": "具体某本书的ID",
                     "type": "integer"
                 },
                 "expected_return_time": {
@@ -710,6 +765,36 @@ const docTemplate = `{
                 }
             }
         },
+        "controller.GetAvailableCopyBookResp": {
+            "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "object",
+                    "required": [
+                        "copy_ids"
+                    ],
+                    "properties": {
+                        "copy_ids": {
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
+                        }
+                    }
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
         "controller.GetDonationRankingResp": {
             "type": "object",
             "required": [
@@ -857,6 +942,7 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "code",
+                "data",
                 "msg"
             ],
             "properties": {
