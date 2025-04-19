@@ -6,6 +6,7 @@ import (
 	"book-management/internal/pkg/tool"
 	"book-management/internal/repository/do"
 	"context"
+	"errors"
 )
 
 // ActivityDao 定义数据库操作接口
@@ -26,16 +27,16 @@ func NewActivityRepo(dao ActivityDao) *ActivityRepo {
 }
 
 func (r *ActivityRepo) CreateActivity(ctx context.Context, activity controller.Activity) error {
-	activityDo,err := convertToDO(activity)
-	if err!=nil {
+	activityDo, err := convertToDO(activity)
+	if err != nil {
 		return errcode.ParamError
 	}
 	return r.dao.Create(ctx, activityDo)
 }
 
 func (r *ActivityRepo) UpdateActivity(ctx context.Context, activity controller.Activity) error {
-	activityDo,err := convertToDO(activity)
-	if err!=nil {
+	activityDo, err := convertToDO(activity)
+	if err != nil {
 		return errcode.ParamError
 	}
 	return r.dao.Update(ctx, activityDo)
@@ -82,26 +83,33 @@ func (r *ActivityRepo) GetActivityByID(ctx context.Context, id uint64) (*control
 }
 
 // 数据转换方法
-func convertToDO(c controller.Activity) (do.Activity,error) {
-	startTime,err := tool.ParseToShanghaiTime(c.Info.StartTime, tool.Format1)
-	if err!=nil {
-		return do.Activity{},err
+func convertToDO(c controller.Activity) (do.Activity, error) {
+	startTime, err := tool.ParseToShanghaiTime(c.Info.StartTime, tool.Format1)
+	if err != nil {
+		return do.Activity{}, err
 	}
-	endTime,err := tool.ParseToShanghaiTime(c.Info.EndTime, tool.Format1)
-	if err!=nil {
-		return do.Activity{},err
+	endTime, err := tool.ParseToShanghaiTime(c.Info.EndTime, tool.Format1)
+	if err != nil {
+		return do.Activity{}, err
+	}
+
+	if startTime.After(endTime) {
+		return do.Activity{}, errors.New("start time cannot be after end time")
+	}
+	if startTime.Before(tool.GetShanghaiTime()) {
+		return do.Activity{}, errors.New("start time cannot be before now")
 	}
 
 	return do.Activity{
-		ID: c.ActivityID,
-		Name: c.Info.ActivityName,
-		Type: c.Info.ActivityType,
+		ID:        c.ActivityID,
+		Name:      c.Info.ActivityName,
+		Type:      c.Info.ActivityType,
 		StartTime: startTime,
-		EndTime: endTime,
-		Manager: c.Info.Manager,
-		Phone: c.Info.Phone,
-		Addr: c.Info.Addr,
-	},nil
+		EndTime:   endTime,
+		Manager:   c.Info.Manager,
+		Phone:     c.Info.Phone,
+		Addr:      c.Info.Addr,
+	}, nil
 }
 
 func convertToController(d do.Activity) *controller.Activity {
@@ -113,8 +121,8 @@ func convertToController(d do.Activity) *controller.Activity {
 			Manager:      d.Manager,
 			Phone:        d.Phone,
 			Addr:         d.Addr,
-			StartTime:    tool.ConvertTimeFormat(d.StartTime,tool.Format1),
-			EndTime:      tool.ConvertTimeFormat(d.EndTime,tool.Format1),
+			StartTime:    tool.ConvertTimeFormat(d.StartTime, tool.Format1),
+			EndTime:      tool.ConvertTimeFormat(d.EndTime, tool.Format1),
 		},
 	}
 }
