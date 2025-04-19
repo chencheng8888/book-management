@@ -19,7 +19,7 @@ func NewGormDB(conf configs.AppConfig) (*gorm.DB, error) {
 		return nil, err
 	}
 	err = db.AutoMigrate(&do.User{}, &do.BookInfo{}, &do.BookStock{},
-		&do.BookBorrow{}, &do.BookCopy{}, &do.DonateInfo{})
+		&do.BookBorrow{}, &do.BookCopy{}, &do.DonateInfo{}, &do.Activity{})
 	if err != nil {
 		return nil, err
 	}
