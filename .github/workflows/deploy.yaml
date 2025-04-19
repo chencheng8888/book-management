@@ -47,13 +47,14 @@ jobs:
       - name: SSH into server and deploy Docker container
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_ADDR }} << 'EOF'
+            docker login -u '${{ secrets.ALIYUN_USERNAME }}' -p '${{ secrets.ALIYUN_PASSWORD }}' crpi-vgud82zncz8nwfuc.cn-hangzhou.personal.cr.aliyuncs.com
             docker rm -f bm || true
-            docker pull crpi-vgud82zncz8nwfuc.cn-hangzhou.personal.cr.aliyuncs.com/qianchengsijin4869/giteval:bm
+            docker pull crpi-vgud82zncz8nwfuc.cn-hangzhou.personal.cr.aliyuncs.com/qianchengsijin4869/giteval:bm || { echo "❌ Failed to pull image"; exit 1; }
             docker run -d \
             --name bm \
             --network my_network \
             -p 8989:8989 \
             -v ~/configs/config.yaml:/book_management/configs/config.yaml \
             --restart always \
-            crpi-vgud82zncz8nwfuc.cn-hangzhou.personal.cr.aliyuncs.com/qianchengsijin4869/giteval:bm
+            crpi-vgud82zncz8nwfuc.cn-hangzhou.personal.cr.aliyuncs.com/qianchengsijin4869/giteval:bm || { echo "❌ Failed to start container"; exit 1; }
           EOF
