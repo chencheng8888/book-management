@@ -3,6 +3,7 @@ version: '3.8'
 services:
   # 你的 Go 服务
   book_management:
+    container_name: "bm"
     image: bm
     ports:
       - "8989:8989"
