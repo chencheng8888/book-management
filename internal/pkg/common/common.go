@@ -27,6 +27,14 @@ const (
 	BookCopyTableName   = "book_copy"
 	BookBorrowTableName = "book_borrow"
 
-	DonateTableName = "donate"
-	UserTableName   = "users"
+	DonateTableName   = "donate"
+	UserTableName     = "users"
+	ActivityTableName = "activities"
+)
+
+// 活动状态
+const (
+	ActivityStatusPending = "pending"
+	ActivityStatusOngoing = "ongoing"
+	ActivityStatusEnded   = "ended"
 )

@@ -4,6 +4,7 @@ import (
 	"book-management/internal/controller"
 	"book-management/internal/pkg/tool"
 	"time"
+
 )
 
 type BookInfo struct {
@@ -56,7 +57,7 @@ func toControllerBook(book Book) controller.Book {
 		Category:    book.Info.Category,
 		Stock:       book.Stock.Stock,
 		StockStatus: book.Stock.Status,
-		CreatedAt:   tool.ConvertTimeFormat(book.Stock.AddedTime),
+		CreatedAt:   tool.ConvertTimeFormat(book.Stock.AddedTime, tool.Format2),
 	}
 }
 func toControllerBookBorrowRecord(record BookBorrowRecord) controller.BookBorrowRecord {
@@ -65,7 +66,7 @@ func toControllerBookBorrowRecord(record BookBorrowRecord) controller.BookBorrow
 		CopyID:           record.CopyID,
 		UserID:           record.BorrowerID,
 		UserName:         record.Borrower,
-		ShouldReturnTime: tool.ConvertTimeFormat(record.ExpectedTime),
+		ShouldReturnTime: tool.ConvertTimeFormat(record.ExpectedTime,tool.Format2),
 		ReturnStatus:     record.ReturnStatus,
 	}
 }

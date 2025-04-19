@@ -2,8 +2,10 @@ package tool
 
 import (
 	"book-management/internal/pkg/common"
+	"fmt"
 	"math"
 	"time"
+
 )
 
 func CheckCategory(category string) bool {
@@ -37,29 +39,29 @@ func IsTimeFormatValid(timeStr, format string) bool {
 	return t.Format(format) == timeStr
 }
 
-// Intersection 返回两个切片的交集（元素唯一，按第一个切片的出现顺序）
-func Intersection[T comparable](a, b []T) []T {
-	// 创建b元素的快速查找集合
-	setB := make(map[T]struct{})
-	for _, v := range b {
-		setB[v] = struct{}{}
-	}
+// // Intersection 返回两个切片的交集（元素唯一，按第一个切片的出现顺序）
+// func Intersection[T comparable](a, b []T) []T {
+// 	// 创建b元素的快速查找集合
+// 	setB := make(map[T]struct{})
+// 	for _, v := range b {
+// 		setB[v] = struct{}{}
+// 	}
 
-	var result []T
-	seen := make(map[T]struct{}) // 用于记录已添加的元素
+// 	var result []T
+// 	seen := make(map[T]struct{}) // 用于记录已添加的元素
 
-	// 遍历第一个切片
-	for _, v := range a {
-		// 检查元素是否同时存在于两个切片且未被记录
-		if _, inB := setB[v]; inB {
-			if _, exists := seen[v]; !exists {
-				result = append(result, v)
-				seen[v] = struct{}{}
-			}
-		}
-	}
-	return result
-}
+// 	// 遍历第一个切片
+// 	for _, v := range a {
+// 		// 检查元素是否同时存在于两个切片且未被记录
+// 		if _, inB := setB[v]; inB {
+// 			if _, exists := seen[v]; !exists {
+// 				result = append(result, v)
+// 				seen[v] = struct{}{}
+// 			}
+// 		}
+// 	}
+// 	return result
+// }
 
 func GetShanghaiTime() time.Time {
 	local, _ := time.LoadLocation("Asia/Shanghai")
@@ -98,6 +100,25 @@ func Unique[T comparable](slice []T) []T {
 	return list
 }
 
-func ConvertTimeFormat(t time.Time) string {
-	return t.Format("2006-01-02")
+func ConvertTimeFormat(t time.Time, format string) string {
+	return t.Format(format)
+}
+
+// ParseToShanghaiTime 将时间字符串按指定格式解析为上海时区的时间
+// timeStr: 时间字符串
+// format: 时间格式，如"2006-01-02 15:04:05"
+func ParseToShanghaiTime(timeStr, format string) (time.Time, error) {
+	// 加载上海时区
+	loc, err := time.LoadLocation("Asia/Shanghai")
+	if err != nil {
+		return time.Time{}, fmt.Errorf("加载时区失败: %w", err)
+	}
+
+	// 解析时间
+	t, err := time.ParseInLocation(format, timeStr, loc)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("时间解析失败: %w", err)
+	}
+
+	return t, nil
 }

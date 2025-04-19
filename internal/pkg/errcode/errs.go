@@ -10,9 +10,11 @@ var (
 	GenerateTokenError      = NewErr(500, "Generate Token Error")
 
 	AddBookStockError     = NewErr(1001, "Add Book Stock Error")
-	GenerateBookIDError   = NewErr(1002, "Generate Book ID Error")
+	GenerateIDError       = NewErr(1002, "Generate  ID Error")
 	SearchDataError       = NewErr(1003, "Search data Error")
 	PageError             = NewErr(1004, "page Error")
 	InsufficientBookStock = NewErr(1005, "Insufficient book stock")
 	AddBookBorrowError    = NewErr(1006, "Add Book Borrow Error")
+	AddActivityError      = NewErr(1007, "Add Activity Error")
+	UpdateDataError = NewErr(1008, "Update Data Error")
 )

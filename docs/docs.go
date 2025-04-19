@@ -24,6 +24,140 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/v1/activity/add": {
+            "post": {
+                "description": "创建新的图书漂流活动",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "活动管理"
+                ],
+                "summary": "新增活动",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "鉴权",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "新增活动请求",
+                        "name": "object",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controller.AddActivityReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controller.AddActivityResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/activity/query": {
+            "get": {
+                "description": "分页查询图书漂流活动",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "活动管理"
+                ],
+                "summary": "查询活动列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "鉴权",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page 当前页码，必填项",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "PageSize 每页显示的数量，必填项",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Status 活动状态，可选项",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controller.QueryActivityResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/activity/update": {
+            "put": {
+                "description": "更新已存在的图书漂流活动",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "活动管理"
+                ],
+                "summary": "更新活动信息",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "鉴权",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "更新活动请求",
+                        "name": "object",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controller.UpdateActivityReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controller.UpdateActivityResp"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/book/borrow/add": {
             "post": {
                 "description": "借书接口",
@@ -441,9 +575,170 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/v1/user/search": {
+            "get": {
+                "description": "查询用户",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "用户"
+                ],
+                "summary": "查询用户",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "鉴权",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "phone",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "name": "user_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "user_name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "查询成功",
+                        "schema": {
+                            "$ref": "#/definitions/controller.SearchUserResp"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "controller.Activity": {
+            "type": "object",
+            "required": [
+                "activity_id",
+                "info"
+            ],
+            "properties": {
+                "activity_id": {
+                    "type": "integer"
+                },
+                "info": {
+                    "$ref": "#/definitions/controller.ActivityInfo"
+                }
+            }
+        },
+        "controller.ActivityInfo": {
+            "type": "object",
+            "required": [
+                "activity_name",
+                "activity_type",
+                "addr",
+                "end_time",
+                "manager",
+                "phone",
+                "start_time"
+            ],
+            "properties": {
+                "activity_name": {
+                    "description": "ActivityName 活动名称，必填项",
+                    "type": "string"
+                },
+                "activity_type": {
+                    "description": "ActivityType 活动类型，必填项",
+                    "type": "string"
+                },
+                "addr": {
+                    "description": "Addr 活动地址，必填项",
+                    "type": "string"
+                },
+                "end_time": {
+                    "description": "EndTime 活动结束时间，必填项",
+                    "type": "string"
+                },
+                "manager": {
+                    "description": "Manager 负责人姓名，必填项",
+                    "type": "string"
+                },
+                "phone": {
+                    "description": "Phone 联系电话，必填项",
+                    "type": "string"
+                },
+                "start_time": {
+                    "description": "StartTime 活动开始时间，必填项",
+                    "type": "string"
+                }
+            }
+        },
+        "controller.AddActivityReq": {
+            "type": "object",
+            "required": [
+                "info"
+            ],
+            "properties": {
+                "info": {
+                    "$ref": "#/definitions/controller.ActivityInfo"
+                }
+            }
+        },
+        "controller.AddActivityResp": {
+            "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
+            "properties": {
+                "code": {
+                    "description": "Code 响应状态码，必填项",
+                    "type": "integer"
+                },
+                "data": {
+                    "description": "Data 返回的数据结构",
+                    "type": "object",
+                    "required": [
+                        "activity_id"
+                    ],
+                    "properties": {
+                        "activity_id": {
+                            "description": "ActivityID 新增活动的唯一标识符，必填项",
+                            "type": "integer"
+                        }
+                    }
+                },
+                "msg": {
+                    "description": "Msg 响应消息，必填项",
+                    "type": "string"
+                }
+            }
+        },
         "controller.AddStockReq": {
             "type": "object",
             "required": [
@@ -893,6 +1188,44 @@ const docTemplate = `{
                 }
             }
         },
+        "controller.QueryActivityResp": {
+            "type": "object",
+            "required": [
+                "code",
+                "data"
+            ],
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "object",
+                    "required": [
+                        "activitys",
+                        "current_page",
+                        "total",
+                        "total_page"
+                    ],
+                    "properties": {
+                        "activitys": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/controller.Activity"
+                            }
+                        },
+                        "current_page": {
+                            "type": "integer"
+                        },
+                        "total": {
+                            "type": "integer"
+                        },
+                        "total_page": {
+                            "type": "integer"
+                        }
+                    }
+                }
+            }
+        },
         "controller.QueryBookBorrowRecordResp": {
             "type": "object",
             "required": [
@@ -1039,6 +1372,44 @@ const docTemplate = `{
                     }
                 },
                 "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "controller.UpdateActivityReq": {
+            "type": "object",
+            "required": [
+                "activity_id",
+                "info"
+            ],
+            "properties": {
+                "activity_id": {
+                    "description": "ActivityID 活动唯一标识符，必填项",
+                    "type": "integer"
+                },
+                "info": {
+                    "$ref": "#/definitions/controller.ActivityInfo"
+                }
+            }
+        },
+        "controller.UpdateActivityResp": {
+            "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
+            "properties": {
+                "code": {
+                    "description": "Code 响应状态码，必填项",
+                    "type": "integer"
+                },
+                "data": {
+                    "description": "Data 返回的数据结构",
+                    "type": "object"
+                },
+                "msg": {
+                    "description": "Msg 响应消息，必填项",
                     "type": "string"
                 }
             }

@@ -7,6 +7,7 @@ import (
 	"book-management/internal/service"
 	"context"
 	"time"
+
 )
 
 type BookDonateDao interface {
@@ -108,7 +109,7 @@ func convertToServiceRank(rankings []DonateRanking) []service.Rank {
 		r.UserName = rank.UserName
 		r.DonateNum = rank.DonateNum
 		r.DonateTimes = rank.DonateTimes
-		r.UpdatedAt = tool.ConvertTimeFormat(rank.UpdatedAt)
+		r.UpdatedAt = tool.ConvertTimeFormat(rank.UpdatedAt, tool.Format2)
 		res = append(res, r)
 	}
 	return res

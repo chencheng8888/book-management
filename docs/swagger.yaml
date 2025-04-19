@@ -1,5 +1,76 @@
 basePath: /api/v1
 definitions:
+  controller.Activity:
+    properties:
+      activity_id:
+        type: integer
+      info:
+        $ref: '#/definitions/controller.ActivityInfo'
+    required:
+    - activity_id
+    - info
+    type: object
+  controller.ActivityInfo:
+    properties:
+      activity_name:
+        description: ActivityName 活动名称，必填项
+        type: string
+      activity_type:
+        description: ActivityType 活动类型，必填项
+        type: string
+      addr:
+        description: Addr 活动地址，必填项
+        type: string
+      end_time:
+        description: EndTime 活动结束时间，必填项
+        type: string
+      manager:
+        description: Manager 负责人姓名，必填项
+        type: string
+      phone:
+        description: Phone 联系电话，必填项
+        type: string
+      start_time:
+        description: StartTime 活动开始时间，必填项
+        type: string
+    required:
+    - activity_name
+    - activity_type
+    - addr
+    - end_time
+    - manager
+    - phone
+    - start_time
+    type: object
+  controller.AddActivityReq:
+    properties:
+      info:
+        $ref: '#/definitions/controller.ActivityInfo'
+    required:
+    - info
+    type: object
+  controller.AddActivityResp:
+    properties:
+      code:
+        description: Code 响应状态码，必填项
+        type: integer
+      data:
+        description: Data 返回的数据结构
+        properties:
+          activity_id:
+            description: ActivityID 新增活动的唯一标识符，必填项
+            type: integer
+        required:
+        - activity_id
+        type: object
+      msg:
+        description: Msg 响应消息，必填项
+        type: string
+    required:
+    - code
+    - data
+    - msg
+    type: object
   controller.AddStockReq:
     properties:
       author:
@@ -321,6 +392,32 @@ definitions:
     - code
     - msg
     type: object
+  controller.QueryActivityResp:
+    properties:
+      code:
+        type: integer
+      data:
+        properties:
+          activitys:
+            items:
+              $ref: '#/definitions/controller.Activity'
+            type: array
+          current_page:
+            type: integer
+          total:
+            type: integer
+          total_page:
+            type: integer
+        required:
+        - activitys
+        - current_page
+        - total
+        - total_page
+        type: object
+    required:
+    - code
+    - data
+    type: object
   controller.QueryBookBorrowRecordResp:
     properties:
       code:
@@ -427,6 +524,33 @@ definitions:
     - data
     - msg
     type: object
+  controller.UpdateActivityReq:
+    properties:
+      activity_id:
+        description: ActivityID 活动唯一标识符，必填项
+        type: integer
+      info:
+        $ref: '#/definitions/controller.ActivityInfo'
+    required:
+    - activity_id
+    - info
+    type: object
+  controller.UpdateActivityResp:
+    properties:
+      code:
+        description: Code 响应状态码，必填项
+        type: integer
+      data:
+        description: Data 返回的数据结构
+        type: object
+      msg:
+        description: Msg 响应消息，必填项
+        type: string
+    required:
+    - code
+    - data
+    - msg
+    type: object
   controller.UpdateBorrowStatusReq:
     properties:
       book_id:
@@ -504,6 +628,95 @@ info:
   title: Book Management API
   version: "1.0"
 paths:
+  /api/v1/activity/add:
+    post:
+      consumes:
+      - application/json
+      description: 创建新的图书漂流活动
+      parameters:
+      - description: 鉴权
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 新增活动请求
+        in: body
+        name: object
+        required: true
+        schema:
+          $ref: '#/definitions/controller.AddActivityReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.AddActivityResp'
+      summary: 新增活动
+      tags:
+      - 活动管理
+  /api/v1/activity/query:
+    get:
+      consumes:
+      - application/json
+      description: 分页查询图书漂流活动
+      parameters:
+      - description: 鉴权
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Page 当前页码，必填项
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: PageSize 每页显示的数量，必填项
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      - description: Status 活动状态，可选项
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.QueryActivityResp'
+      summary: 查询活动列表
+      tags:
+      - 活动管理
+  /api/v1/activity/update:
+    put:
+      consumes:
+      - application/json
+      description: 更新已存在的图书漂流活动
+      parameters:
+      - description: 鉴权
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 更新活动请求
+        in: body
+        name: object
+        required: true
+        schema:
+          $ref: '#/definitions/controller.UpdateActivityReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.UpdateActivityResp'
+      summary: 更新活动信息
+      tags:
+      - 活动管理
   /api/v1/book/borrow/add:
     post:
       consumes:
@@ -782,4 +995,45 @@ paths:
       summary: 模糊查询库存信息
       tags:
       - 库存
+  /api/v1/user/search:
+    get:
+      consumes:
+      - application/json
+      description: 查询用户
+      parameters:
+      - description: 鉴权
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - in: query
+        name: page
+        required: true
+        type: integer
+      - in: query
+        name: page_size
+        required: true
+        type: integer
+      - in: query
+        name: phone
+        required: true
+        type: string
+      - in: query
+        name: user_id
+        required: true
+        type: integer
+      - in: query
+        name: user_name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 查询成功
+          schema:
+            $ref: '#/definitions/controller.SearchUserResp'
+      summary: 查询用户
+      tags:
+      - 用户
 swagger: "2.0"

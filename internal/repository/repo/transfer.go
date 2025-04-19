@@ -87,7 +87,7 @@ func batchToServiceBookDonateRecord(infos []do.DonateInfo, user map[uint64]strin
 		record.Phone = phone[info.UserID]
 		record.BookName = bookname[info.BookID]
 		record.DonateNum = info.Num
-		record.DonateTime = tool.ConvertTimeFormat(info.UpdatedAt)
+		record.DonateTime = tool.ConvertTimeFormat(info.UpdatedAt,tool.Format2)
 		res = append(res, record)
 	}
 	return res

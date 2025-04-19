@@ -2,12 +2,13 @@ package service
 
 import (
 	"book-management/internal/pkg/tool"
-	"github.com/google/wire"
 	"time"
+
+	"github.com/google/wire"
 )
 
 var ProviderSet = wire.NewSet(
-	NewBookSvc,
+	NewBookSvc,NewActivitySvc,
 	NewUserSvc)
 
 var (

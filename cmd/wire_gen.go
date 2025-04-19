@@ -46,7 +46,11 @@ func InitializeApp(config configs.AppConfig) (*App, error) {
 	userSvc := service.NewUserSvc(userRepo)
 	userCtrl := controller.NewUserCtrl(userSvc)
 	bookDonateCtrl := controller.NewBookDonateCtrl(bookSvc)
-	v2 := controller.NewCtrl(pingController, authCtrl, bookStockCtrl, bookBorrowCtrl, userCtrl, bookDonateCtrl)
+	activityDao := dao.NewActivityDao(db)
+	activityRepo := repo.NewActivityRepo(activityDao)
+	activitySvc := service.NewActivitySvc(activityRepo)
+	activityCtrl := controller.NewActivityCtrl(activitySvc)
+	v2 := controller.NewCtrl(pingController, authCtrl, bookStockCtrl, bookBorrowCtrl, userCtrl, bookDonateCtrl, activityCtrl)
 	engine := route.NewRouter(v, v2)
 	app := newApp(engine)
 	return app, nil

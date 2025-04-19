@@ -158,10 +158,10 @@ func (b *BookSvc) AddStock(ctx context.Context, req controller.AddStockReq, ID *
 		return nil
 	}
 
-	bookID, err := b.ider.GenerateBookID(ctx)
+	bookID, err := b.ider.GenerateID(ctx)
 	if err != nil {
 		logger.LogPrinter.Errorf("generate book id failed: %v", err)
-		return errcode.GenerateBookIDError
+		return errcode.GenerateIDError
 	}
 	*ID = bookID
 	bookInfo := BookInfo{
@@ -246,7 +246,7 @@ func NewMyIDer() *MyIDer {
 	}
 }
 
-func (i *MyIDer) GenerateBookID(ctx context.Context) (uint64, error) {
+func (i *MyIDer) GenerateID(ctx context.Context) (uint64, error) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
