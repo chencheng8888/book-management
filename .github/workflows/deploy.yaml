@@ -46,7 +46,7 @@ jobs:
       # SSH 连接到服务器并拉取并运行 Docker 镜像
       - name: SSH into server and deploy Docker container
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secret.SERVER_USER }}@${{ secret.SERVER_ADDR }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_ADDR }} << 'EOF'
             docker rm -f bm || true
             docker pull crpi-vgud82zncz8nwfuc.cn-hangzhou.personal.cr.aliyuncs.com/qianchengsijin4869/giteval:bm
             docker run -d \
