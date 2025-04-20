@@ -127,7 +127,7 @@ func (a *ActivityCtrl) QueryActivities(c *gin.Context) {
 		"activitys":    activities,
 		"total_page":   tool.GetPage(total, req.PageSize),
 		"current_page": req.Page,
-		"total_num":    total,
+		"total":        total,
 	}))
 }
 

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math"
 	"time"
-
 )
 
 func CheckCategory(category string) bool {
@@ -101,7 +100,8 @@ func Unique[T comparable](slice []T) []T {
 }
 
 func ConvertTimeFormat(t time.Time, format string) string {
-	return t.Format(format)
+	loc, _ := time.LoadLocation("Asia/Shanghai")
+	return t.In(loc).Format(format)
 }
 
 // ParseToShanghaiTime 将时间字符串按指定格式解析为上海时区的时间
