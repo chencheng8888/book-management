@@ -672,7 +672,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "activity_type": {
-                    "description": "ActivityType 活动类型，必填项",
+                    "description": "ActivityType 活动类型，必填项，暂时有parent_child_interactions",
                     "type": "string"
                 },
                 "addr": {
@@ -680,7 +680,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "end_time": {
-                    "description": "EndTime 活动结束时间，必填项",
+                    "description": "EndTime 活动结束时间，必填项，时间格式为\"2025-01-01 12:00:00\"",
                     "type": "string"
                 },
                 "manager": {
@@ -692,7 +692,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "start_time": {
-                    "description": "StartTime 活动开始时间，必填项",
+                    "description": "StartTime 活动开始时间，必填项，时间格式为\"2025-01-01 12:00:00\"",
                     "type": "string"
                 }
             }

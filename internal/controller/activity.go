@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"book-management/internal/pkg/errcode"
 	treq "book-management/internal/pkg/req"
 	"book-management/internal/pkg/resp"
 	"book-management/internal/pkg/tool"
@@ -51,6 +52,11 @@ func (a *ActivityCtrl) AddActivity(c *gin.Context) {
 		return
 	}
 
+	if !a.checkoutActivityType(req.Info.ActivityType) {
+		resp.SendResp(c, resp.NewRespFromErr(errcode.ParamError))
+		return
+	}
+
 	activityID, err := a.svc.AddActivity(c, req)
 	if err != nil {
 		resp.SendResp(c, resp.NewRespFromErr(err))
@@ -74,8 +80,14 @@ func (a *ActivityCtrl) AddActivity(c *gin.Context) {
 // @Router /api/v1/activity/update [put]
 func (a *ActivityCtrl) UpdateActivity(c *gin.Context) {
 	var req UpdateActivityReq
+
 	if err := treq.ParseRequestBody(c, &req); err != nil {
 		resp.SendResp(c, resp.NewRespFromErr(err))
+		return
+	}
+
+	if !a.checkoutActivityType(req.Info.ActivityType) {
+		resp.SendResp(c, resp.NewRespFromErr(errcode.ParamError))
 		return
 	}
 
@@ -117,4 +129,13 @@ func (a *ActivityCtrl) QueryActivities(c *gin.Context) {
 		"current_page": req.Page,
 		"total_num":    total,
 	}))
+}
+
+func (a *ActivityCtrl) checkoutActivityType(Type string) bool {
+	switch Type {
+	case "parent_child_interactions":
+		return true
+	default:
+		return false
+	}
 }
