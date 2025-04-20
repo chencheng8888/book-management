@@ -102,7 +102,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Status 活动状态，可选项",
+                        "description": "Status 活动状态，可选项,活动状态有pending，ongoing，ended",
                         "name": "status",
                         "in": "query"
                     }

@@ -54,7 +54,7 @@ type QueryActivityReq struct {
 	// PageSize 每页显示的数量，必填项
 	PageSize int `json:"page_size" form:"page_size" binding:"required"`
 
-	// Status 活动状态，可选项
+	// Status 活动状态，可选项,活动状态有pending，ongoing，ended
 	Status *string `json:"status" form:"status"`
 }
 
