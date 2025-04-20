@@ -36,7 +36,6 @@ func (d *ActivityDao) Query(ctx context.Context, pageSize, page int, status *str
 	if status != nil {
 		query = d.applyStatusFilter(query, *status)
 	}
-
 	err := query.Scopes(paginate(page, pageSize)).
 		Order("start_time DESC").
 		Find(&activities).Error
@@ -71,11 +70,11 @@ func (d *ActivityDao) applyStatusFilter(query *gorm.DB, status string) *gorm.DB 
 
 	switch status {
 	case common.ActivityStatusPending:
-		return query.Where("start_time > ?",now)
+		return query.Where("start_time > ?", now)
 	case common.ActivityStatusOngoing:
-		return query.Where("start_time <= ? AND end_time >= ?",now,now)
+		return query.Where("start_time <= ? AND end_time >= ?", now, now)
 	case common.ActivityStatusEnded:
-		return query.Where("end_time < ?",now)
+		return query.Where("end_time < ?", now)
 	default:
 		return query
 	}
