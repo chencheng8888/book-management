@@ -65,10 +65,10 @@ type ActivityInfo struct {
 	// ActivityType 活动类型，必填项，暂时有parent_child_interactions
 	ActivityType string `json:"activity_type" binding:"required"`
 
-	// StartTime 活动开始时间，必填项，时间格式为"2025-01-01 12:00:00"
+	// StartTime 活动开始时间，必填项，时间格式为"2025-01-01 12:00:00"，注意时区是上海时区
 	StartTime string `json:"start_time" binding:"required"`
 
-	// EndTime 活动结束时间，必填项，时间格式为"2025-01-01 12:00:00"
+	// EndTime 活动结束时间，必填项，时间格式为"2025-01-01 12:00:00"，注意时区是上海时区
 	EndTime string `json:"end_time" binding:"required"`
 
 	// Manager 负责人姓名，必填项
