@@ -62,7 +62,7 @@ type ActivityInfo struct {
 	// ActivityName 活动名称，必填项
 	ActivityName string `json:"activity_name" binding:"required"`
 
-	// ActivityType 活动类型，必填项，暂时有parent_child_interactions
+	// ActivityType 活动类型，必填项，暂时有parent_child_interactions,handmade_diy,theme_experience,role_play
 	ActivityType string `json:"activity_type" binding:"required"`
 
 	// StartTime 活动开始时间，必填项，时间格式为"2025-01-01 12:00:00"，注意时区是上海时区

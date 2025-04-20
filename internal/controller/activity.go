@@ -133,7 +133,7 @@ func (a *ActivityCtrl) QueryActivities(c *gin.Context) {
 
 func (a *ActivityCtrl) checkoutActivityType(Type string) bool {
 	switch Type {
-	case "parent_child_interactions":
+	case "parent_child_interactions","handmade_diy","theme_experience","role_play":
 		return true
 	default:
 		return false

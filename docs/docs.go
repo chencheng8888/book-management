@@ -672,7 +672,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "activity_type": {
-                    "description": "ActivityType 活动类型，必填项，暂时有parent_child_interactions",
+                    "description": "ActivityType 活动类型，必填项，暂时有parent_child_interactions,handmade_diy,theme_experience,role_play",
                     "type": "string"
                 },
                 "addr": {

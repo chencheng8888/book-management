@@ -1,9 +1,9 @@
 package do
 
 import (
+	"book-management/internal/pkg/common"
 	"time"
 
-	"book-management/internal/pkg/common"
 )
 
 type DonateInfo struct {
@@ -13,7 +13,6 @@ type DonateInfo struct {
 	CreatedAt time.Time `gorm:"column:created_at"`
 	UpdatedAt time.Time `gorm:"column:updated_at"`
 }
-
 func (d DonateInfo) TableName() string {
 	return common.DonateTableName
 }
