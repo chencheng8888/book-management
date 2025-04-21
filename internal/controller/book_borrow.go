@@ -7,6 +7,7 @@ import (
 	"book-management/internal/pkg/resp"
 	"book-management/internal/pkg/tool"
 	"context"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -51,7 +52,7 @@ func (b *BookBorrowCtrl) RegisterRoute(r *gin.Engine) {
 // @Router /api/v1/book/borrow/get_available [get]
 func (b *BookBorrowCtrl) GetAvailableCopyBook(c *gin.Context) {
 	var getAvailableCopyBookReq GetAvailableCopyBookReq
-	if err := req.ParseRequestBody(c, &getAvailableCopyBookReq); err != nil {
+	if err := req.ParseRequestQuery(c, &getAvailableCopyBookReq); err != nil {
 		resp.SendResp(c, resp.NewRespFromErr(err))
 		return
 	}
