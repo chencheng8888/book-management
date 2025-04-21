@@ -35,6 +35,7 @@ func (b *BookBorrowCtrl) RegisterRoute(r *gin.Engine) {
 		g.GET("/query", b.QueryBookBorrowRecord)
 		g.PUT("/update_status", b.UpdateBorrowStatus)
 		g.GET("/query_statistics", b.QueryStatisticsBorrowRecords)
+		g.GET("/get_available", b.GetAvailableCopyBook)
 	}
 }
 
