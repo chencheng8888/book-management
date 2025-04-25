@@ -9,4 +9,5 @@ var ProviderSet = wire.NewSet(
 	NewBookBorrowRepo,
 	NewBookDonateRepo,
 	NewActivityRepo,
+	NewVolunteerRepo,
 	NewUserRepo)

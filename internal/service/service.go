@@ -8,7 +8,7 @@ import (
 )
 
 var ProviderSet = wire.NewSet(
-	NewBookSvc,NewActivitySvc,
+	NewBookSvc, NewActivitySvc, NewVolunteerSvc,
 	NewUserSvc)
 
 var (

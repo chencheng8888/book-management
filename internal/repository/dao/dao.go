@@ -5,5 +5,5 @@ import (
 )
 
 var ProviderSet = wire.NewSet(
-	NewBookDao, NewActivityDao,
+	NewBookDao, NewActivityDao, NewVolunteerDao,
 	NewUserDao)

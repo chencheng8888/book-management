@@ -223,6 +223,48 @@ definitions:
     - data
     - msg
     type: object
+  controller.CreateVolunteerReq:
+    properties:
+      age:
+        description: 年龄
+        type: integer
+      expertiseArea:
+        description: 专业领域
+        type: string
+      name:
+        description: 姓名
+        type: string
+      phone:
+        description: 手机号
+        type: string
+      serviceTimePreference:
+        description: 服务时间偏好
+        type: string
+    required:
+    - age
+    - expertiseArea
+    - name
+    - phone
+    - serviceTimePreference
+    type: object
+  controller.CreateVolunteerResp:
+    properties:
+      code:
+        type: integer
+      data:
+        properties:
+          volunteer_id:
+            type: integer
+        required:
+        - volunteer_id
+        type: object
+      msg:
+        type: string
+    required:
+    - code
+    - data
+    - msg
+    type: object
   controller.DonateRecords:
     properties:
       book_name:
@@ -341,6 +383,73 @@ definitions:
     required:
     - code
     - data
+    type: object
+  controller.GetVolunteerApplicationsResp:
+    properties:
+      code:
+        type: integer
+      data:
+        properties:
+          applications:
+            description: 申请列表
+            items:
+              $ref: '#/definitions/controller.VolunteerApplicationInfo'
+            type: array
+          current_page:
+            description: 当前页码
+            type: integer
+          total:
+            description: 总记录数
+            type: integer
+          total_page:
+            description: 总页数
+            type: integer
+        required:
+        - applications
+        - current_page
+        - total
+        - total_page
+        type: object
+      msg:
+        type: string
+    required:
+    - code
+    - data
+    - msg
+    type: object
+  controller.GetVolunteerInfosResp:
+    properties:
+      code:
+        type: integer
+      data:
+        properties:
+          current_page:
+            description: 当前页码
+            type: integer
+          total:
+            description: 总记录数
+            type: integer
+          total_page:
+            description: 总页数
+            type: integer
+          volunteers:
+            description: 志愿者列表
+            items:
+              $ref: '#/definitions/controller.VolunteerInfo'
+            type: array
+        required:
+        - current_page
+        - total
+        - total_page
+        - volunteers
+        type: object
+      msg:
+        description: 响应消息
+        type: string
+    required:
+    - code
+    - data
+    - msg
     type: object
   controller.ListDonateRecordsResp:
     properties:
@@ -506,6 +615,8 @@ definitions:
         properties:
           current_page:
             type: integer
+          total_num:
+            type: integer
           total_page:
             type: integer
           users:
@@ -514,6 +625,7 @@ definitions:
             type: array
         required:
         - current_page
+        - total_num
         - total_page
         - users
         type: object
@@ -600,7 +712,7 @@ definitions:
         description: 手机号
         type: string
       status:
-        description: 用户状态
+        description: 用户状态,目前有
         type: string
       vip_levels:
         description: 会员等级
@@ -613,6 +725,41 @@ definitions:
     - name
     - phone
     - status
+    type: object
+  controller.VolunteerApplicationInfo:
+    properties:
+      age:
+        type: integer
+      id:
+        type: integer
+      name:
+        type: string
+      phone:
+        type: string
+    type: object
+  controller.VolunteerInfo:
+    properties:
+      age:
+        description: 年龄
+        type: integer
+      createdAt:
+        description: 创建时间
+        type: string
+      expertiseArea:
+        description: 专业领域
+        type: string
+      id:
+        description: ID
+        type: integer
+      name:
+        description: 姓名
+        type: string
+      phone:
+        description: 手机号
+        type: string
+      serviceTimePreference:
+        description: 服务时间偏好
+        type: string
     type: object
 host: localhost:8989
 info:
@@ -1007,6 +1154,12 @@ paths:
         required: true
         type: string
       - in: query
+        name: is_vip
+        type: boolean
+      - in: query
+        name: level
+        type: string
+      - in: query
         name: page
         required: true
         type: integer
@@ -1016,15 +1169,12 @@ paths:
         type: integer
       - in: query
         name: phone
-        required: true
         type: string
       - in: query
         name: user_id
-        required: true
         type: integer
       - in: query
         name: user_name
-        required: true
         type: string
       produces:
       - application/json
@@ -1036,4 +1186,92 @@ paths:
       summary: 查询用户
       tags:
       - 用户
+  /api/v1/volunteer/create:
+    post:
+      consumes:
+      - application/json
+      description: 新增志愿者信息
+      parameters:
+      - description: 鉴权
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 创建志愿者请求
+        in: body
+        name: object
+        required: true
+        schema:
+          $ref: '#/definitions/controller.CreateVolunteerReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.CreateVolunteerResp'
+      summary: 创建志愿者
+      tags:
+      - 志愿者管理
+  /api/v1/volunteer/list_application:
+    get:
+      consumes:
+      - application/json
+      description: 分页获取申请志愿者的信息，包括姓名、电话号码和年龄
+      parameters:
+      - description: 鉴权
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - in: query
+        name: page
+        required: true
+        type: integer
+      - in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.GetVolunteerApplicationsResp'
+      summary: 获取申请志愿者列表
+      tags:
+      - 志愿者管理
+  /api/v1/volunteer/query:
+    get:
+      consumes:
+      - application/json
+      description: 分页查询志愿者信息或根据ID查询单个志愿者
+      parameters:
+      - description: 鉴权
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - in: query
+        name: id
+        type: integer
+      - in: query
+        name: page
+        required: true
+        type: integer
+      - in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.GetVolunteerInfosResp'
+      summary: 查询志愿者信息
+      tags:
+      - 志愿者管理
 swagger: "2.0"

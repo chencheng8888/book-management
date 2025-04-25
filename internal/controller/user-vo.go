@@ -1,9 +1,11 @@
 package controller
 
 type SearchUserReq struct {
-	UserID   *uint64 `form:"user_id" binding:"required"`
-	UserName *string `form:"user_name" binding:"required"`
-	Phone    *string `form:"phone" binding:"required"`
+	UserID   *uint64 `form:"user_id"`
+	UserName *string `form:"user_name"`
+	Phone    *string `form:"phone"`
+	IsVIP    *bool   `form:"is_vip"`
+	Level    *string `form:"level"`
 	Page     int     `form:"page" binding:"required"`
 	PageSize int     `form:"page_size" binding:"required"`
 }
@@ -16,7 +18,7 @@ type User struct {
 	Gender    string  `json:"gender" binding:"required"`   //性别
 	IsVip     bool    `json:"is_vip" binding:"required"`   //是否是会员
 	VipLevels *string `json:"vip_levels"`                  //会员等级
-	Status    string  `json:"status" binding:"required"`   //用户状态
+	Status    string  `json:"status" binding:"required"`   //用户状态,目前有
 }
 
 type SearchUserResp struct {
@@ -25,6 +27,7 @@ type SearchUserResp struct {
 		Users       []User `json:"users" binding:"required"`
 		TotalPage   int    `json:"total_page" binding:"required"`
 		CurrentPage int    `json:"current_page" binding:"required"`
+		TotalNum    int    `json:"total_num" binding:"required"`
 	} `json:"data" binding:"required"`
 	Msg string `json:"msg" binding:"required"`
 }

@@ -3,8 +3,10 @@ package controller
 import (
 	"book-management/internal/pkg/req"
 	"book-management/internal/pkg/resp"
+	"book-management/internal/pkg/tool"
 	"context"
 	"github.com/gin-gonic/gin"
+	"reflect"
 )
 
 type UserSvc interface {
@@ -45,14 +47,43 @@ func (u *UserCtrl) SearchUser(c *gin.Context) {
 		return
 	}
 
-	users, totalPage, err := u.userSvc.SearchUser(c, searchUserReq)
+	NormalizePointerFields(&searchUserReq)
+
+	users, totalNum, err := u.userSvc.SearchUser(c, searchUserReq)
 	if err != nil {
 		resp.SendResp(c, resp.NewRespFromErr(err))
 		return
 	}
 	resp.SendResp(c, resp.WithData(resp.SuccessResp, map[string]interface{}{
 		"users":        users,
-		"total_page":   totalPage,
+		"total_page":   tool.GetPage(totalNum, searchUserReq.PageSize),
 		"current_page": searchUserReq.Page,
+		"total_num":    totalNum,
 	}))
+}
+
+// NormalizePointerFields 检查结构体中的指针字段，如果值为零值则设置为 nil
+func NormalizePointerFields(v interface{}) {
+	val := reflect.ValueOf(v)
+	if val.Kind() != reflect.Ptr || val.IsNil() {
+		return // 确保 v 是非 nil 的指针
+	}
+
+	val = val.Elem()
+	if val.Kind() != reflect.Struct {
+		return // 确保 v 指向的是结构体
+	}
+
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+
+		// 只处理指针字段
+		if field.Kind() == reflect.Ptr && !field.IsNil() {
+			// 检查指针指向的值是否为零值
+			zeroValue := reflect.Zero(field.Elem().Type()).Interface()
+			if reflect.DeepEqual(field.Elem().Interface(), zeroValue) {
+				field.Set(reflect.Zero(field.Type())) // 设置为 nil
+			}
+		}
+	}
 }

@@ -24,10 +24,7 @@ func NewUserRepo(userDao UserDao) *UserRepo {
 	return &UserRepo{userDao: userDao}
 }
 
-func (u *UserRepo) SearchUser(ctx context.Context, totalPage *int, SearchInfo service.SearchUserOpts) ([]service.User, error) {
-	if totalPage == nil || SearchInfo.Page <= 0 || SearchInfo.PageSize <= 0 {
-		return nil, errcode.PageError
-	}
+func (u *UserRepo) SearchUser(ctx context.Context, totalNum *int, SearchInfo service.SearchUserOpts) ([]service.User, error) {
 	var opts []func(db *gorm.DB)
 	if SearchInfo.ByID {
 		opts = append(opts, func(db *gorm.DB) {
@@ -44,6 +41,18 @@ func (u *UserRepo) SearchUser(ctx context.Context, totalPage *int, SearchInfo se
 				db = db.Where(fmt.Sprintf("%s.phone = ?", common.UserTableName), SearchInfo.Opts.Phone)
 			})
 		}
+
+		if SearchInfo.Opts.IsVIP {
+			if SearchInfo.Opts.Level != "" {
+				opts = append(opts, func(db *gorm.DB) {
+					db = db.Where(fmt.Sprintf("%s.is_vip = ? AND %s.vip_levels = ?", common.UserTableName, common.UserTableName), SearchInfo.Opts.IsVIP, SearchInfo.Opts.Level)
+				})
+			} else {
+				opts = append(opts, func(db *gorm.DB) {
+					db = db.Where(fmt.Sprintf("%s.is_vip = ?", common.UserTableName), SearchInfo.Opts.IsVIP)
+				})
+			}
+		}
 	}
 
 	num, err := u.userDao.GetUserNum(ctx, opts...)
@@ -51,9 +60,9 @@ func (u *UserRepo) SearchUser(ctx context.Context, totalPage *int, SearchInfo se
 		return nil, err
 	}
 
-	*totalPage = tool.GetPage(num, SearchInfo.PageSize)
+	*totalNum = num
 
-	if SearchInfo.Page > *totalPage {
+	if SearchInfo.Page > tool.GetPage(num, SearchInfo.PageSize) {
 		return nil, errcode.PageError
 	}
 

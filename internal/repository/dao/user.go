@@ -50,7 +50,7 @@ func (u *UserDao) SearchUserID(ctx context.Context, currentPage, pageSize int, o
 	for _, opt := range opts {
 		opt(db)
 	}
-	err := db.Debug().Where("id >= (?)", db.Select("id").Order("id").Offset((currentPage-1)*pageSize).Limit(1)).
+	err := db.Debug().Select("*").Where("id >= (?)", db.Select("id").Order("id").Offset((currentPage-1)*pageSize).Limit(1)).
 		Limit(pageSize).Find(&users).Error
 	if err != nil {
 		return nil, err
@@ -59,7 +59,7 @@ func (u *UserDao) SearchUserID(ctx context.Context, currentPage, pageSize int, o
 }
 
 func (u *UserDao) GetUserNum(ctx context.Context, opts ...func(db *gorm.DB)) (int, error) {
-	db := u.db.WithContext(ctx)
+	db := u.db.WithContext(ctx).Table(common.UserTableName)
 
 	for _, opt := range opts {
 		opt(db)

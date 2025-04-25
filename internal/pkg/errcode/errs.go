@@ -16,5 +16,6 @@ var (
 	InsufficientBookStock = NewErr(1005, "Insufficient book stock")
 	AddBookBorrowError    = NewErr(1006, "Add Book Borrow Error")
 	AddActivityError      = NewErr(1007, "Add Activity Error")
-	UpdateDataError = NewErr(1008, "Update Data Error")
+	UpdateDataError       = NewErr(1008, "Update Data Error")
+	AddDataError          = NewErr(1009, "Add Data Error")
 )

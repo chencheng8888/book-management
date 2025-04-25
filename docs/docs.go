@@ -598,6 +598,16 @@ const docTemplate = `{
                         "required": true
                     },
                     {
+                        "type": "boolean",
+                        "name": "is_vip",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "level",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
                         "name": "page",
                         "in": "query",
@@ -612,20 +622,17 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "name": "phone",
-                        "in": "query",
-                        "required": true
+                        "in": "query"
                     },
                     {
                         "type": "integer",
                         "name": "user_id",
-                        "in": "query",
-                        "required": true
+                        "in": "query"
                     },
                     {
                         "type": "string",
                         "name": "user_name",
-                        "in": "query",
-                        "required": true
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -633,6 +640,140 @@ const docTemplate = `{
                         "description": "查询成功",
                         "schema": {
                             "$ref": "#/definitions/controller.SearchUserResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/volunteer/create": {
+            "post": {
+                "description": "新增志愿者信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "志愿者管理"
+                ],
+                "summary": "创建志愿者",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "鉴权",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "创建志愿者请求",
+                        "name": "object",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controller.CreateVolunteerReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controller.CreateVolunteerResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/volunteer/list_application": {
+            "get": {
+                "description": "分页获取申请志愿者的信息，包括姓名、电话号码和年龄",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "志愿者管理"
+                ],
+                "summary": "获取申请志愿者列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "鉴权",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controller.GetVolunteerApplicationsResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/volunteer/query": {
+            "get": {
+                "description": "分页查询志愿者信息或根据ID查询单个志愿者",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "志愿者管理"
+                ],
+                "summary": "查询志愿者信息",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "鉴权",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "name": "id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controller.GetVolunteerInfosResp"
                         }
                     }
                 }
@@ -946,6 +1087,65 @@ const docTemplate = `{
                 }
             }
         },
+        "controller.CreateVolunteerReq": {
+            "type": "object",
+            "required": [
+                "age",
+                "expertiseArea",
+                "name",
+                "phone",
+                "serviceTimePreference"
+            ],
+            "properties": {
+                "age": {
+                    "description": "年龄",
+                    "type": "integer"
+                },
+                "expertiseArea": {
+                    "description": "专业领域",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "姓名",
+                    "type": "string"
+                },
+                "phone": {
+                    "description": "手机号",
+                    "type": "string"
+                },
+                "serviceTimePreference": {
+                    "description": "服务时间偏好",
+                    "type": "string"
+                }
+            }
+        },
+        "controller.CreateVolunteerResp": {
+            "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "object",
+                    "required": [
+                        "volunteer_id"
+                    ],
+                    "properties": {
+                        "volunteer_id": {
+                            "type": "integer"
+                        }
+                    }
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
         "controller.DonateRecords": {
             "type": "object",
             "required": [
@@ -1113,6 +1313,99 @@ const docTemplate = `{
                             }
                         }
                     }
+                }
+            }
+        },
+        "controller.GetVolunteerApplicationsResp": {
+            "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "object",
+                    "required": [
+                        "applications",
+                        "current_page",
+                        "total",
+                        "total_page"
+                    ],
+                    "properties": {
+                        "applications": {
+                            "description": "申请列表",
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/controller.VolunteerApplicationInfo"
+                            }
+                        },
+                        "current_page": {
+                            "description": "当前页码",
+                            "type": "integer"
+                        },
+                        "total": {
+                            "description": "总记录数",
+                            "type": "integer"
+                        },
+                        "total_page": {
+                            "description": "总页数",
+                            "type": "integer"
+                        }
+                    }
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "controller.GetVolunteerInfosResp": {
+            "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "object",
+                    "required": [
+                        "current_page",
+                        "total",
+                        "total_page",
+                        "volunteers"
+                    ],
+                    "properties": {
+                        "current_page": {
+                            "description": "当前页码",
+                            "type": "integer"
+                        },
+                        "total": {
+                            "description": "总记录数",
+                            "type": "integer"
+                        },
+                        "total_page": {
+                            "description": "总页数",
+                            "type": "integer"
+                        },
+                        "volunteers": {
+                            "description": "志愿者列表",
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/controller.VolunteerInfo"
+                            }
+                        }
+                    }
+                },
+                "msg": {
+                    "description": "响应消息",
+                    "type": "string"
                 }
             }
         },
@@ -1353,11 +1646,15 @@ const docTemplate = `{
                     "type": "object",
                     "required": [
                         "current_page",
+                        "total_num",
                         "total_page",
                         "users"
                     ],
                     "properties": {
                         "current_page": {
+                            "type": "integer"
+                        },
+                        "total_num": {
                             "type": "integer"
                         },
                         "total_page": {
@@ -1490,11 +1787,61 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
-                    "description": "用户状态",
+                    "description": "用户状态,目前有",
                     "type": "string"
                 },
                 "vip_levels": {
                     "description": "会员等级",
+                    "type": "string"
+                }
+            }
+        },
+        "controller.VolunteerApplicationInfo": {
+            "type": "object",
+            "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                }
+            }
+        },
+        "controller.VolunteerInfo": {
+            "type": "object",
+            "properties": {
+                "age": {
+                    "description": "年龄",
+                    "type": "integer"
+                },
+                "createdAt": {
+                    "description": "创建时间",
+                    "type": "string"
+                },
+                "expertiseArea": {
+                    "description": "专业领域",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "ID",
+                    "type": "integer"
+                },
+                "name": {
+                    "description": "姓名",
+                    "type": "string"
+                },
+                "phone": {
+                    "description": "手机号",
+                    "type": "string"
+                },
+                "serviceTimePreference": {
+                    "description": "服务时间偏好",
                     "type": "string"
                 }
             }

@@ -7,7 +7,7 @@ import (
 )
 
 type UserRepo interface {
-	SearchUser(ctx context.Context, totalPage *int, SearchInfo SearchUserOpts) ([]User, error)
+	SearchUser(ctx context.Context, totalNum *int, SearchInfo SearchUserOpts) ([]User, error)
 }
 
 type UserSvc struct {
@@ -34,15 +34,21 @@ func (u *UserSvc) SearchUser(ctx context.Context, req controller.SearchUserReq) 
 		if req.Phone != nil {
 			userFieldOptSlice = append(userFieldOptSlice, WithPhone(*req.Phone))
 		}
+		if req.IsVIP != nil {
+			userFieldOptSlice = append(userFieldOptSlice, WithIsVIP(*req.IsVIP))
+		}
+		if req.Level != nil {
+			userFieldOptSlice = append(userFieldOptSlice, WithLevel(*req.Level))
+		}
 		searchUserOptSlice = append(searchUserOptSlice, WithUserFieldOpts(NewUserFieldOpts(userFieldOptSlice...)))
 	}
 
-	var totalPage int
-	users, err := u.userRepo.SearchUser(ctx, &totalPage, NewSearchUserOpts(searchUserOptSlice...))
+	var totalNum int
+	users, err := u.userRepo.SearchUser(ctx, &totalNum, NewSearchUserOpts(searchUserOptSlice...))
 	if err != nil {
 		return nil, 0, errcode.SearchDataError
 	}
-	return batchToControllerUser(users), totalPage, nil
+	return batchToControllerUser(users), totalNum, nil
 }
 
 type UserFieldOpt func(opts *UserFieldOpts)
@@ -50,6 +56,8 @@ type UserFieldOpt func(opts *UserFieldOpts)
 type UserFieldOpts struct {
 	UserName string
 	Phone    string
+	IsVIP    bool
+	Level    string
 }
 
 func NewUserFieldOpts(opts ...UserFieldOpt) UserFieldOpts {
@@ -68,6 +76,18 @@ func WithUserName(userName string) UserFieldOpt {
 func WithPhone(phone string) UserFieldOpt {
 	return func(opts *UserFieldOpts) {
 		opts.Phone = phone
+	}
+}
+
+func WithIsVIP(isvip bool) UserFieldOpt {
+	return func(opts *UserFieldOpts) {
+		opts.IsVIP = isvip
+	}
+}
+
+func WithLevel(level string) UserFieldOpt {
+	return func(opts *UserFieldOpts) {
+		opts.Level = level
 	}
 }
 
@@ -111,7 +131,6 @@ func WithUserID(userID uint64) SearchUserOpt {
 }
 func WithUserFieldOpts(userFieldOpts UserFieldOpts) SearchUserOpt {
 	return func(opts *SearchUserOpts) {
-		opts.ByID = true
 		opts.Opts = userFieldOpts
 	}
 }
