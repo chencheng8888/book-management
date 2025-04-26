@@ -356,6 +356,45 @@ definitions:
     - code
     - msg
     type: object
+  controller.GetActivityStaticsResp:
+    properties:
+      code:
+        type: integer
+      data:
+        properties:
+          activity_participation_rate:
+            description: 参与率,值以乘100为单位
+            type: integer
+          ended_num:
+            description: 已结束活动数量
+            type: integer
+          ongoing_num:
+            description: 进行中活动数量
+            type: integer
+          total_activity_num:
+            description: 活动总数
+            type: integer
+          total_applicants:
+            description: 报名人数
+            type: integer
+          upcoming_num:
+            description: 即将开始活动数量
+            type: integer
+        required:
+        - activity_participation_rate
+        - ended_num
+        - ongoing_num
+        - total_activity_num
+        - total_applicants
+        - upcoming_num
+        type: object
+      msg:
+        type: string
+    required:
+    - code
+    - data
+    - msg
+    type: object
   controller.GetAvailableCopyBookResp:
     properties:
       code:
@@ -874,6 +913,27 @@ paths:
           schema:
             $ref: '#/definitions/controller.AddActivityResp'
       summary: 新增活动
+      tags:
+      - 活动管理
+  /api/v1/activity/get_statics:
+    get:
+      consumes:
+      - application/json
+      description: 获取活动的总数、报名人数、参与率、已结束、进行中和即将开始的活动数量
+      parameters:
+      - description: 鉴权
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.GetActivityStaticsResp'
+      summary: 获取活动统计信息
       tags:
       - 活动管理
   /api/v1/activity/query:

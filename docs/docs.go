@@ -65,6 +65,38 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/activity/get_statics": {
+            "get": {
+                "description": "获取活动的总数、报名人数、参与率、已结束、进行中和即将开始的活动数量",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "活动管理"
+                ],
+                "summary": "获取活动统计信息",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "鉴权",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controller.GetActivityStaticsResp"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/activity/query": {
             "get": {
                 "description": "分页查询图书漂流活动",
@@ -1329,6 +1361,59 @@ const docTemplate = `{
                         },
                         "verification_code_id": {
                             "type": "string"
+                        }
+                    }
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "controller.GetActivityStaticsResp": {
+            "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "object",
+                    "required": [
+                        "activity_participation_rate",
+                        "ended_num",
+                        "ongoing_num",
+                        "total_activity_num",
+                        "total_applicants",
+                        "upcoming_num"
+                    ],
+                    "properties": {
+                        "activity_participation_rate": {
+                            "description": "参与率,值以乘100为单位",
+                            "type": "integer"
+                        },
+                        "ended_num": {
+                            "description": "已结束活动数量",
+                            "type": "integer"
+                        },
+                        "ongoing_num": {
+                            "description": "进行中活动数量",
+                            "type": "integer"
+                        },
+                        "total_activity_num": {
+                            "description": "活动总数",
+                            "type": "integer"
+                        },
+                        "total_applicants": {
+                            "description": "报名人数",
+                            "type": "integer"
+                        },
+                        "upcoming_num": {
+                            "description": "即将开始活动数量",
+                            "type": "integer"
                         }
                     }
                 },

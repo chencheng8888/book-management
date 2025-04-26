@@ -95,3 +95,17 @@ type QueryActivityResp struct {
 		Total       int        `json:"total" binding:"required"`
 	} `json:"data" binding:"required"`
 }
+
+type GetActivityStaticsResp struct {
+	Code int    `json:"code" binding:"required"`
+	Msg  string `json:"msg" binding:"required"`
+	Data struct {
+		TotalActivityNum  int `json:"total_activity_num" binding:"required"`          // 活动总数
+		TotalApplicants   int `json:"total_applicants" binding:"required"`            // 报名人数
+		ParticipationRate int `json:"activity_participation_rate" binding:"required"` // 参与率,值以乘100为单位
+		EndedNum          int `json:"ended_num" binding:"required"`                   // 已结束活动数量
+		OngoingNum        int `json:"ongoing_num" binding:"required"`                 // 进行中活动数量
+		UpcomingNum       int `json:"upcoming_num" binding:"required"`                // 即将开始活动数量
+
+	} `json:"data" binding:"required"`
+}

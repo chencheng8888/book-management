@@ -14,7 +14,8 @@ type Activity struct {
 	Manager   string    `gorm:"type:varchar(255);column:manager"`
 	Phone     string    `gorm:"type:varchar(30);column:phone"`
 	Addr      string    `gorm:"type:varchar(255);column:addr"`
-
+	PeopleNum int       `gorm:"column:people_num"`
+	SignUpNum int       `gorm:"column:sign_up_num"`
 	CreatedAt time.Time `gorm:"column:created_at"`
 	UpdatedAt time.Time `gorm:"column:updated_at"`
 }
