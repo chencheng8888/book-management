@@ -49,7 +49,7 @@ func InitializeApp(config configs.AppConfig) (*App, error) {
 	activityDao := dao.NewActivityDao(db)
 	activityRepo := repo.NewActivityRepo(activityDao)
 	activitySvc := service.NewActivitySvc(activityRepo)
-	activityCtrl := controller.NewActivityCtrl(activitySvc)
+	activityCtrl := controller.NewActivityCtrl(activitySvc, db)
 	volunteerDao := dao.NewVolunteerDao(db)
 	volunteerRepo := repo.NewVolunteerRepo(volunteerDao)
 	volunteerSvc := service.NewVolunteerSvc(volunteerRepo)
