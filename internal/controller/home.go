@@ -73,6 +73,8 @@ func (h *HomeController) GetHomePage(c *gin.Context) {
 		) AS active_users
 	`, time.Now().AddDate(0, 0, -7)).Scan(&activeUsers)
 
+	var hotBookID uint64
+
 	// 热门书籍（借阅最多的书籍）
 	h.db.Raw(`
 		SELECT book_id 
@@ -80,7 +82,14 @@ func (h *HomeController) GetHomePage(c *gin.Context) {
 		GROUP BY book_id 
 		ORDER BY COUNT(*) DESC 
 		LIMIT 1
-	`).Scan(&hotBook)
+	`).Scan(&hotBookID)
+
+	if hotBookID != 0 {
+		h.db.Model(&do.BookInfo{}).
+			Select("name").
+			Where("id = ?", hotBookID).
+			Scan(&hotBook)
+	}
 
 	// 平均借阅时长（单位天）
 	h.db.Raw(`
