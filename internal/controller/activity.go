@@ -7,8 +7,8 @@ import (
 	"book-management/internal/pkg/resp"
 	"book-management/internal/pkg/tool"
 	"context"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"gorm.io/gorm"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -157,13 +157,13 @@ func (a *ActivityCtrl) GetActivityStatics(c *gin.Context) {
 	a.db.WithContext(c).Table(common.ActivityTableName).Select("sum(people_num)").Scan(&totalParticipate)
 
 	var endedNum int64
-	a.db.WithContext(c).Table(common.ActivityTableName).Where("end_time < ?", timestamppb.Now()).Count(&endedNum)
+	a.db.WithContext(c).Table(common.ActivityTableName).Where("end_time < ?", time.Now()).Count(&endedNum)
 
 	var ongoingNum int64
-	a.db.WithContext(c).Table(common.ActivityTableName).Where("start_time < ? and end_time > ?", timestamppb.Now(), timestamppb.Now()).Count(&ongoingNum)
+	a.db.WithContext(c).Table(common.ActivityTableName).Where("start_time < ? and end_time > ?", time.Now(), time.Now()).Count(&ongoingNum)
 
 	var upcomingNum int64
-	a.db.WithContext(c).Table(common.ActivityTableName).Where("start_time > ?", timestamppb.Now()).Count(&upcomingNum)
+	a.db.WithContext(c).Table(common.ActivityTableName).Where("start_time > ?", time.Now()).Count(&upcomingNum)
 
 	resp.SendResp(c, resp.WithData(resp.SuccessResp, map[string]interface{}{
 		"total_num":                   totalNum,
