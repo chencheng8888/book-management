@@ -14,6 +14,7 @@ import (
 type UserDao interface {
 	SearchUserID(ctx context.Context, currentPage, pageSize int, opts ...func(db *gorm.DB)) ([]do.User, error)
 	GetUserNum(ctx context.Context, opts ...func(db *gorm.DB)) (int, error)
+	GetVIPStatics(ctx context.Context) (map[string]int, error)
 }
 
 type UserRepo struct {
@@ -71,4 +72,8 @@ func (u *UserRepo) SearchUser(ctx context.Context, totalNum *int, SearchInfo ser
 		return nil, err
 	}
 	return batchToServiceUser(users), nil
+}
+
+func (u *UserRepo) GetVIPStatics(ctx context.Context) (map[string]int, error) {
+	return u.userDao.GetVIPStatics(ctx)
 }

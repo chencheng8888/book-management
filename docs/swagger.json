@@ -570,6 +570,38 @@
                 }
             }
         },
+        "/api/v1/home/get_statics": {
+            "get": {
+                "description": "获取库存总数、今日借阅数量、本月借阅数量、活跃用户数量、热门书籍、平均借阅时长、新增用户数、库存不足数量以及逾期未归还书本数量",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "首页"
+                ],
+                "summary": "获取首页统计数据",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "鉴权",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "统计数据",
+                        "schema": {
+                            "$ref": "#/definitions/controller.HomePageResp"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/user/search": {
             "get": {
                 "description": "查询用户",
@@ -634,6 +666,38 @@
                         "description": "查询成功",
                         "schema": {
                             "$ref": "#/definitions/controller.SearchUserResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/user/vip_statics": {
+            "get": {
+                "description": "获取会员的统计数据",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "用户"
+                ],
+                "summary": "获取会员的统计数据",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "鉴权",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "查询成功",
+                        "schema": {
+                            "$ref": "#/definitions/controller.GetVIPStaticsResp"
                         }
                     }
                 }
@@ -1310,6 +1374,28 @@
                 }
             }
         },
+        "controller.GetVIPStaticsResp": {
+            "type": "object",
+            "required": [
+                "gold_num",
+                "normal_num",
+                "silver_num"
+            ],
+            "properties": {
+                "gold_num": {
+                    "description": "金卡会员的数量",
+                    "type": "integer"
+                },
+                "normal_num": {
+                    "description": "普通会员的数量",
+                    "type": "integer"
+                },
+                "silver_num": {
+                    "description": "银卡会员的数量",
+                    "type": "integer"
+                }
+            }
+        },
         "controller.GetVolunteerApplicationsResp": {
             "type": "object",
             "required": [
@@ -1403,6 +1489,54 @@
                 }
             }
         },
+        "controller.HomePageResp": {
+            "type": "object",
+            "properties": {
+                "active_users": {
+                    "description": "活跃用户数量",
+                    "type": "integer"
+                },
+                "avg_borrow_duration": {
+                    "description": "平均借阅时长（单位天）",
+                    "type": "number"
+                },
+                "hot_book": {
+                    "description": "热门书籍",
+                    "type": "string"
+                },
+                "low_stock_count": {
+                    "description": "库存不足数量",
+                    "type": "integer"
+                },
+                "month_borrowed": {
+                    "description": "本月借阅数量",
+                    "type": "integer"
+                },
+                "monthly_borrowed": {
+                    "description": "近六个月每月借阅数目",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/controller.MonthlyBorrowed"
+                    }
+                },
+                "new_users": {
+                    "description": "新增用户数",
+                    "type": "integer"
+                },
+                "overdue_books": {
+                    "description": "逾期未归还书本数量",
+                    "type": "integer"
+                },
+                "today_borrowed": {
+                    "description": "今日借阅数量",
+                    "type": "integer"
+                },
+                "total_stock": {
+                    "description": "库存总数",
+                    "type": "integer"
+                }
+            }
+        },
         "controller.ListDonateRecordsResp": {
             "type": "object",
             "required": [
@@ -1471,6 +1605,19 @@
                     }
                 },
                 "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "controller.MonthlyBorrowed": {
+            "type": "object",
+            "properties": {
+                "borrow_count": {
+                    "description": "借阅数目",
+                    "type": "integer"
+                },
+                "month": {
+                    "description": "月份",
                     "type": "string"
                 }
             }

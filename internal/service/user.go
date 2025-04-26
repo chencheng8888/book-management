@@ -8,6 +8,7 @@ import (
 
 type UserRepo interface {
 	SearchUser(ctx context.Context, totalNum *int, SearchInfo SearchUserOpts) ([]User, error)
+	GetVIPStatics(ctx context.Context) (map[string]int, error)
 }
 
 type UserSvc struct {
@@ -18,6 +19,10 @@ func NewUserSvc(userRepo UserRepo) *UserSvc {
 	return &UserSvc{
 		userRepo: userRepo,
 	}
+}
+
+func (u *UserSvc) GetVIPStatics(ctx context.Context) (map[string]int, error) {
+	return u.userRepo.GetVIPStatics(ctx)
 }
 
 func (u *UserSvc) SearchUser(ctx context.Context, req controller.SearchUserReq) ([]controller.User, int, error) {

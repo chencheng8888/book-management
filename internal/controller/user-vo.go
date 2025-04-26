@@ -31,3 +31,11 @@ type SearchUserResp struct {
 	} `json:"data" binding:"required"`
 	Msg string `json:"msg" binding:"required"`
 }
+
+type GetVIPStaticsReq struct{}
+
+type GetVIPStaticsResp struct {
+	NormalNum int `json:"normal_num" binding:"required"` //普通会员的数量
+	GoldNum   int `json:"gold_num" binding:"required"`   //金卡会员的数量
+	SilverNum int `json:"silver_num" binding:"required"` //银卡会员的数量
+}

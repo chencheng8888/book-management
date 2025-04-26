@@ -96,6 +96,28 @@ func (u *UserDao) GetUserName(ctx context.Context, id ...uint64) (map[uint64]str
 	}
 	return mp, nil
 }
+func (u *UserDao) GetVIPStatics(ctx context.Context) (map[string]int, error) {
+	db := u.db.WithContext(ctx).Table("users")
+
+	var result []struct {
+		VipLevels string `gorm:"column:vip_levels"`
+		Count     int    `gorm:"column:count"`
+	}
+
+	err := db.Select("vip_levels, COUNT(*) as count").
+		Where("is_vip = ?", true).
+		Group("vip_levels").
+		Find(&result).Error
+	if err != nil {
+		return nil, err
+	}
+
+	statics := make(map[string]int)
+	for _, r := range result {
+		statics[r.VipLevels] = r.Count
+	}
+	return statics, nil
+}
 
 func checkUserIfExist(ctx context.Context, db *gorm.DB, id uint64) (bool, error) {
 	var cnt int64

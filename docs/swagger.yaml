@@ -384,6 +384,22 @@ definitions:
     - code
     - data
     type: object
+  controller.GetVIPStaticsResp:
+    properties:
+      gold_num:
+        description: 金卡会员的数量
+        type: integer
+      normal_num:
+        description: 普通会员的数量
+        type: integer
+      silver_num:
+        description: 银卡会员的数量
+        type: integer
+    required:
+    - gold_num
+    - normal_num
+    - silver_num
+    type: object
   controller.GetVolunteerApplicationsResp:
     properties:
       code:
@@ -451,6 +467,41 @@ definitions:
     - data
     - msg
     type: object
+  controller.HomePageResp:
+    properties:
+      active_users:
+        description: 活跃用户数量
+        type: integer
+      avg_borrow_duration:
+        description: 平均借阅时长（单位天）
+        type: number
+      hot_book:
+        description: 热门书籍
+        type: string
+      low_stock_count:
+        description: 库存不足数量
+        type: integer
+      month_borrowed:
+        description: 本月借阅数量
+        type: integer
+      monthly_borrowed:
+        description: 近六个月每月借阅数目
+        items:
+          $ref: '#/definitions/controller.MonthlyBorrowed'
+        type: array
+      new_users:
+        description: 新增用户数
+        type: integer
+      overdue_books:
+        description: 逾期未归还书本数量
+        type: integer
+      today_borrowed:
+        description: 今日借阅数量
+        type: integer
+      total_stock:
+        description: 库存总数
+        type: integer
+    type: object
   controller.ListDonateRecordsResp:
     properties:
       code:
@@ -500,6 +551,15 @@ definitions:
     required:
     - code
     - msg
+    type: object
+  controller.MonthlyBorrowed:
+    properties:
+      borrow_count:
+        description: 借阅数目
+        type: integer
+      month:
+        description: 月份
+        type: string
     type: object
   controller.QueryActivityResp:
     properties:
@@ -1142,6 +1202,27 @@ paths:
       summary: 模糊查询库存信息
       tags:
       - 库存
+  /api/v1/home/get_statics:
+    get:
+      consumes:
+      - application/json
+      description: 获取库存总数、今日借阅数量、本月借阅数量、活跃用户数量、热门书籍、平均借阅时长、新增用户数、库存不足数量以及逾期未归还书本数量
+      parameters:
+      - description: 鉴权
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 统计数据
+          schema:
+            $ref: '#/definitions/controller.HomePageResp'
+      summary: 获取首页统计数据
+      tags:
+      - 首页
   /api/v1/user/search:
     get:
       consumes:
@@ -1184,6 +1265,27 @@ paths:
           schema:
             $ref: '#/definitions/controller.SearchUserResp'
       summary: 查询用户
+      tags:
+      - 用户
+  /api/v1/user/vip_statics:
+    get:
+      consumes:
+      - application/json
+      description: 获取会员的统计数据
+      parameters:
+      - description: 鉴权
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 查询成功
+          schema:
+            $ref: '#/definitions/controller.GetVIPStaticsResp'
+      summary: 获取会员的统计数据
       tags:
       - 用户
   /api/v1/volunteer/create:

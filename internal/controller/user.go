@@ -11,6 +11,7 @@ import (
 
 type UserSvc interface {
 	SearchUser(ctx context.Context, req SearchUserReq) ([]User, int, error)
+	GetVIPStatics(ctx context.Context) (map[string]int, error)
 }
 
 type UserCtrl struct {
@@ -27,6 +28,7 @@ func (u *UserCtrl) RegisterRoute(r *gin.Engine) {
 	g := r.Group("/api/v1/user")
 	{
 		g.GET("/search", u.SearchUser)
+		g.GET("/vip_statics", u.GetVIPStatics)
 	}
 }
 
@@ -59,6 +61,29 @@ func (u *UserCtrl) SearchUser(c *gin.Context) {
 		"total_page":   tool.GetPage(totalNum, searchUserReq.PageSize),
 		"current_page": searchUserReq.Page,
 		"total_num":    totalNum,
+	}))
+}
+
+// GetVIPStatics 获取会员的统计数据
+// @Summary  获取会员的统计数据
+// @Description  获取会员的统计数据
+// @Tags 用户
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "鉴权"
+// @Param object query GetVIPStaticsReq true "请求参数"
+// @Success 200 {object} GetVIPStaticsResp "查询成功"
+// @Router /api/v1/user/vip_statics [get]
+func (u *UserCtrl) GetVIPStatics(c *gin.Context) {
+	mp, err := u.userSvc.GetVIPStatics(c)
+	if err != nil {
+		resp.SendResp(c, resp.NewRespFromErr(err))
+		return
+	}
+	resp.SendResp(c, resp.WithData(resp.SuccessResp, map[string]interface{}{
+		"normal_num": mp["normal"],
+		"gold_num":   mp["gold"],
+		"silver_num": mp["silver"],
 	}))
 }
 

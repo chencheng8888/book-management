@@ -16,6 +16,7 @@ var ProviderSet = wire.NewSet(
 	NewCtrl,
 	NewActivityCtrl,
 	NewVolunteerController,
+	NewHomeController,
 )
 
 func NewCtrl(pingCtrl *PingController,
@@ -25,7 +26,8 @@ func NewCtrl(pingCtrl *PingController,
 	userCtrl *UserCtrl,
 	donateCtrl *BookDonateCtrl,
 	activityCtrl *ActivityCtrl,
-	volunteerCtrl *VolunteerController) []route.WebHandler {
+	volunteerCtrl *VolunteerController,
+	home *HomeController) []route.WebHandler {
 	var webhandlers = []route.WebHandler{
 		pingCtrl,
 		authCtrl,
@@ -35,6 +37,7 @@ func NewCtrl(pingCtrl *PingController,
 		donateCtrl,
 		activityCtrl,
 		volunteerCtrl,
+		home,
 	}
 	return webhandlers
 }

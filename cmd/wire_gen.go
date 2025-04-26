@@ -54,7 +54,8 @@ func InitializeApp(config configs.AppConfig) (*App, error) {
 	volunteerRepo := repo.NewVolunteerRepo(volunteerDao)
 	volunteerSvc := service.NewVolunteerSvc(volunteerRepo)
 	volunteerController := controller.NewVolunteerController(volunteerSvc)
-	v2 := controller.NewCtrl(pingController, authCtrl, bookStockCtrl, bookBorrowCtrl, userCtrl, bookDonateCtrl, activityCtrl, volunteerController)
+	homeController := controller.NewHomeController(db)
+	v2 := controller.NewCtrl(pingController, authCtrl, bookStockCtrl, bookBorrowCtrl, userCtrl, bookDonateCtrl, activityCtrl, volunteerController, homeController)
 	engine := route.NewRouter(v, v2)
 	app := newApp(engine)
 	return app, nil
