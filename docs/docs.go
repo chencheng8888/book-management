@@ -1151,6 +1151,19 @@ const docTemplate = `{
                 }
             }
         },
+        "controller.CategoryInfo": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "description": "分类名称",
+                    "type": "string"
+                },
+                "count": {
+                    "description": "分类数量",
+                    "type": "integer"
+                }
+            }
+        },
         "controller.CreateVolunteerReq": {
             "type": "object",
             "required": [
@@ -1505,6 +1518,13 @@ const docTemplate = `{
                 "avg_borrow_duration": {
                     "description": "平均借阅时长（单位天）",
                     "type": "number"
+                },
+                "category_infos": {
+                    "description": "书籍分类信息",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/controller.CategoryInfo"
+                    }
                 },
                 "hot_book": {
                     "description": "热门书籍",

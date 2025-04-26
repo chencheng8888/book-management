@@ -158,6 +158,7 @@ type HomePageResp struct {
 	LowStockCount     int64             `json:"low_stock_count"`     // 库存不足数量
 	OverdueBooks      int64             `json:"overdue_books"`       // 逾期未归还书本数量
 	MonthlyBorrowed   []MonthlyBorrowed `json:"monthly_borrowed"`    // 近六个月每月借阅数目
+	CategoryInfos     []CategoryInfo    `json:"category_infos"`      // 书籍分类信息
 }
 
 // MonthlyBorrowed 近六个月每月借阅数目
