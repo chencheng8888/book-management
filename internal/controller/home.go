@@ -126,7 +126,7 @@ func (h *HomeController) GetHomePage(c *gin.Context) {
 	// 每种类别的书籍数量
 	h.db.Raw(`
 	  SELECT category, COUNT(*) AS count
-	  FROM book_info
+	  FROM books
 	  GROUP BY category
 	 `).Scan(&categoryCounts)
 
