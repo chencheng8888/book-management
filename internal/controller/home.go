@@ -46,6 +46,7 @@ func (h *HomeController) GetHomePage(c *gin.Context) {
 		lowStockCount     int64
 		overdueBooks      int64
 		monthlyBorrowed   []MonthlyBorrowed
+		categoryCounts    []CategoryInfo
 	)
 
 	// 获取库存总数
@@ -122,6 +123,13 @@ func (h *HomeController) GetHomePage(c *gin.Context) {
 		ORDER BY month ASC
 	`, time.Now().AddDate(0, -6, 0)).Scan(&monthlyBorrowed)
 
+	// 每种类别的书籍数量
+	h.db.Raw(`
+	  SELECT category, COUNT(*) AS count
+	  FROM book_info
+	  GROUP BY category
+	 `).Scan(&categoryCounts)
+
 	// 返回结果
 	resp.SendResp(c, resp.WithData(resp.SuccessResp, map[string]interface{}{
 		"total_stock":         totalStock,
@@ -134,6 +142,7 @@ func (h *HomeController) GetHomePage(c *gin.Context) {
 		"low_stock_count":     lowStockCount,
 		"overdue_books":       overdueBooks,
 		"monthly_borrowed":    monthlyBorrowed,
+		"category_counts":     categoryCounts,
 	}))
 }
 
@@ -155,4 +164,10 @@ type HomePageResp struct {
 type MonthlyBorrowed struct {
 	Month       string `json:"month"`        // 月份
 	BorrowCount int64  `json:"borrow_count"` // 借阅数目
+}
+
+// CategoryInfo 书籍分类
+type CategoryInfo struct {
+	Category string `json:"category"` // 分类名称
+	Count    int64  `json:"count"`    // 分类数量
 }
