@@ -1386,8 +1386,8 @@ const docTemplate = `{
                         "activity_participation_rate",
                         "ended_num",
                         "ongoing_num",
-                        "total_activity_num",
                         "total_applicants",
+                        "total_num",
                         "upcoming_num"
                     ],
                     "properties": {
@@ -1403,12 +1403,12 @@ const docTemplate = `{
                             "description": "进行中活动数量",
                             "type": "integer"
                         },
-                        "total_activity_num": {
-                            "description": "活动总数",
-                            "type": "integer"
-                        },
                         "total_applicants": {
                             "description": "报名人数",
+                            "type": "integer"
+                        },
+                        "total_num": {
+                            "description": "活动总数",
                             "type": "integer"
                         },
                         "upcoming_num": {

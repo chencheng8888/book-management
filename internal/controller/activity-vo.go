@@ -100,7 +100,7 @@ type GetActivityStaticsResp struct {
 	Code int    `json:"code" binding:"required"`
 	Msg  string `json:"msg" binding:"required"`
 	Data struct {
-		TotalActivityNum  int `json:"total_activity_num" binding:"required"`          // 活动总数
+		TotalActivityNum  int `json:"total_num" binding:"required"`                   // 活动总数
 		TotalApplicants   int `json:"total_applicants" binding:"required"`            // 报名人数
 		ParticipationRate int `json:"activity_participation_rate" binding:"required"` // 参与率,值以乘100为单位
 		EndedNum          int `json:"ended_num" binding:"required"`                   // 已结束活动数量
