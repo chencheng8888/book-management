@@ -34,9 +34,9 @@ func InitializeApp(config configs.AppConfig) (*App, error) {
 		return nil, err
 	}
 	bookDao := dao.NewBookDao(db)
-	bookCache := cache.NewBookCache(client)
 	userDao := dao.NewUserDao(db)
-	bookBorrowRepo := repo.NewBookBorrowRepo(bookDao, bookCache, userDao)
+	bookBorrowRepo := repo.NewBookBorrowRepo(bookDao, userDao)
+	bookCache := cache.NewBookCache(client)
 	bookStockRepo := repo.NewBookStockRepo(bookDao, bookDao, bookCache)
 	bookDonateRepo := repo.NewBookDonateRepo(bookDao, bookDao, userDao, userDao)
 	bookSvc := service.NewBookSvc(bookBorrowRepo, bookStockRepo, bookDonateRepo)

@@ -51,7 +51,6 @@ func InitializeApp(config configs.AppConfig) (*App, error) {
 		wire.Bind(new(repo.GetUserPhone), new(*dao.UserDao)),
 		wire.Bind(new(repo.ActivityDao), new(*dao.ActivityDao)),
 		wire.Bind(new(repo.VolunteerDao), new(*dao.VolunteerDao)),
-		wire.Bind(new(repo.BookBorrowCache), new(*cache.BookCache)),
 		wire.Bind(new(repo.BookCache), new(*cache.BookCache)),
 	)
 	return &App{}, nil

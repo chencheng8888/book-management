@@ -27,26 +27,20 @@ type BookBorrowDao interface {
 	GetAvailableBookCopy(ctx context.Context, bookID uint64, page, pageSize int) ([]uint64, error)
 }
 
-type BookBorrowCache interface {
-	GetBookBorrowStatistics(ctx context.Context, pattern string) (do.BorrowStatistics, error)
-	SaveBookBorrowStatistics(ctx context.Context, pattern string, num do.BorrowStatistics) error
-}
 type GetUserNamer interface {
 	GetUserName(ctx context.Context, id ...uint64) (map[uint64]string, error)
 }
 type BookBorrowRepo struct {
-	bookBorrowDao   BookBorrowDao
-	bookBorrowCache BookBorrowCache
-	userDao         GetUserNamer
-	locker          *locker.Locker
+	bookBorrowDao BookBorrowDao
+	userDao       GetUserNamer
+	locker        *locker.Locker
 }
 
-func NewBookBorrowRepo(bookBorrowDao BookBorrowDao, bookBorrowCache BookBorrowCache, userDao GetUserNamer) *BookBorrowRepo {
+func NewBookBorrowRepo(bookBorrowDao BookBorrowDao, userDao GetUserNamer) *BookBorrowRepo {
 	return &BookBorrowRepo{
-		bookBorrowDao:   bookBorrowDao,
-		bookBorrowCache: bookBorrowCache,
-		userDao:         userDao,
-		locker:          locker.NewLocker(),
+		bookBorrowDao: bookBorrowDao,
+		userDao:       userDao,
+		locker:        locker.NewLocker(),
 	}
 }
 
@@ -55,11 +49,6 @@ func (b *BookBorrowRepo) GetAvailableCopyBook(ctx context.Context, bookID uint64
 }
 
 func (b *BookBorrowRepo) GetBookStatisticsBorrow(ctx context.Context, pattern string, startTime, endTime time.Time) (map[string]int, error) {
-	//尝试从缓存中获取
-	statistics, err := b.bookBorrowCache.GetBookBorrowStatistics(ctx, pattern)
-	if err == nil {
-		return statistics.ToMap(), nil
-	}
 
 	//这个操作，应该是个耗时操作
 	if b.locker.IsLock() {
@@ -71,12 +60,8 @@ func (b *BookBorrowRepo) GetBookStatisticsBorrow(ctx context.Context, pattern st
 	b.locker.Lock()
 	defer b.locker.Unlock()
 
-	statistics, err = b.bookBorrowDao.GetBookBorrowStatistics(ctx, startTime, endTime)
+	statistics, err := b.bookBorrowDao.GetBookBorrowStatistics(ctx, startTime, endTime)
 	if err == nil {
-		err = b.bookBorrowCache.SaveBookBorrowStatistics(context.Background(), pattern, statistics)
-		if err != nil {
-			logger.LogPrinter.Warnf("cache: save book borrow statistics[pattern:%v statistics:%v] failed: %v", pattern, statistics, err)
-		}
 		return statistics.ToMap(), nil
 	}
 	//获取不到直接返回
